@@ -33,7 +33,6 @@ Fulfillment : Roadmap Item
 3. Include the necessary `patchConfigLocation` files in your `admin/web.xml`:
     ```xml
         classpath:/bl-amazon-applicationContext.xml
-        classpath:/bl-amazon-admin-applicationContext.xml
     ```
     > Note: These two lines should go before the `classpath:/applicationContext.xml` line, but after `classpath:/bl-admin-applicationContext.xml`
 
