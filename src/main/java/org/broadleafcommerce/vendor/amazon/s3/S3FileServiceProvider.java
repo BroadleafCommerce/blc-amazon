@@ -10,8 +10,12 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
+import javax.annotation.Resource;
 
 public class S3FileServiceProvider implements FileServiceProvider {
+
+    @Resource(name = "blS3ConfigurationService")
+    protected S3ConfigurationService s3ConfigurationService;
 
     @Override
     public File getResource(String name) {
@@ -42,12 +46,12 @@ public class S3FileServiceProvider implements FileServiceProvider {
 
             @Override
             public String getAWSSecretKey() {
-                return findProperty("aws.s3.secretKey");
+                return s3ConfigurationService.lookupS3SecretKey();
             }
 
             @Override
             public String getAWSAccessKeyId() {
-                return findProperty("aws.s3.accessKeyId");
+                return s3ConfigurationService.lookupS3AccessKeyId();
             }
         };
     }
