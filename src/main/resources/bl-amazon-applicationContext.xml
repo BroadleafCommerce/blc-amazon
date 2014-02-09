@@ -8,4 +8,19 @@
            http://www.springframework.org/schema/context/spring-context-3.1.xsd">
 
     <context:component-scan base-package="org.broadleafcommerce.vendor.amazon"/>
+    
+    <bean
+        class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+        <property name="targetObject">
+            <ref bean="blFileService" />
+        </property>
+        <property name="targetMethod">
+            <value>setDefaultFileServiceProvider</value>
+        </property>
+        <property name="arguments">
+            <list>
+                <ref bean="blS3FileServiceProvider" />
+            </list>
+        </property>
+    </bean>    
 </beans>

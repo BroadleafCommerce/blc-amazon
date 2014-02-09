@@ -76,4 +76,5 @@ public class S3Configuration {
         } else if (!getAWSAccessKeyId.equals(other.getAWSAccessKeyId)) return false;
         return true;
     }
+
 }
