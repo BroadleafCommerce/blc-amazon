@@ -14,9 +14,9 @@ Fulfillment : Roadmap Item
 1. Add the dependency management section to your **parent** `pom.xml`:
     ```xml
     <dependency>
-        <groupId>com.broadleafcommerce</groupId>
+        <groupId>org.broadleafcommerce</groupId>
         <artifactId>broadleaf-amazon</artifactId>
-        <version>1.0.0-GA</version>
+        <version>1.0.0-SNAPSHOT</version>
         <type>jar</type>
         <scope>compile</scope>
     </dependency>
@@ -25,7 +25,7 @@ Fulfillment : Roadmap Item
 2. Pull this dependency into your `core/pom.xml`:
     ```xml
     <dependency>
-        <groupId>com.broadleafcommerce</groupId>
+        <groupId>org.broadleafcommerce</groupId>
         <artifactId>broadleaf-amazon</artifactId>
     </dependency>
     ```
