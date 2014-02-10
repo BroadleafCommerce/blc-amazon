@@ -30,6 +30,7 @@ import com.amazonaws.AmazonServiceException;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.regions.RegionUtils;
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
@@ -73,14 +74,22 @@ public class S3FileServiceProvider implements FileServiceProvider {
 
     @Override
     public File getResource(String name, FileApplicationType fileApplicationType) {
-        S3Configuration s3config = s3ConfigurationService.lookupS3Configuration();
-        AmazonS3Client s3 = getAmazonS3Client(s3config);
-        S3Object object = s3.getObject(new GetObjectRequest(s3config.getDefaultBucketName(), buildResourceName(name)));
-        
-        OutputStream outputStream = null;
-        InputStream inputStream = object.getObjectContent();
         File returnFile = blFileService.getLocalResource(name);
+        OutputStream outputStream = null;
+        InputStream inputStream = null;
+
         try {
+            S3Configuration s3config = s3ConfigurationService.lookupS3Configuration();
+            AmazonS3Client s3 = getAmazonS3Client(s3config);
+            S3Object object = s3.getObject(new GetObjectRequest(s3config.getDefaultBucketName(), buildResourceName(name)));
+
+            inputStream = object.getObjectContent();
+
+            if (!returnFile.getParentFile().exists()) {
+                if (!returnFile.getParentFile().mkdirs()) {
+                    throw new RuntimeException("Unable to create parent directories for file: " + name);
+                }
+            }
             outputStream = new FileOutputStream(returnFile);
             int read = 0;
             byte[] bytes = new byte[1024];
@@ -90,6 +99,12 @@ public class S3FileServiceProvider implements FileServiceProvider {
             }
         } catch (IOException ioe) {
             throw new RuntimeException("Error writing s3 file to local file system", ioe);
+        } catch (AmazonS3Exception s3Exception) {
+            if ("NoSuchKey".equals(s3Exception.getErrorCode())) {
+                return returnFile;
+            } else {
+                throw s3Exception;
+            }
         } finally {
             if (inputStream != null) {
                 try {
