@@ -16,7 +16,7 @@ Fulfillment : Roadmap Item
     <dependency>
         <groupId>org.broadleafcommerce</groupId>
         <artifactId>broadleaf-amazon</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
+        <version>1.0.0-GA</version>
         <type>jar</type>
         <scope>compile</scope>
     </dependency>
