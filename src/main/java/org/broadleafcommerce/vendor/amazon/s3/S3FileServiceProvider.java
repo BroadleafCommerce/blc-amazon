@@ -87,7 +87,10 @@ public class S3FileServiceProvider implements FileServiceProvider {
 
             if (!returnFile.getParentFile().exists()) {
                 if (!returnFile.getParentFile().mkdirs()) {
-                    throw new RuntimeException("Unable to create parent directories for file: " + name);
+                    // Other thread could have created - check one more time.
+                    if (!returnFile.getParentFile().exists()) {
+                        throw new RuntimeException("Unable to create parent directories for file: " + name);
+                    }
                 }
             }
             outputStream = new FileOutputStream(returnFile);
