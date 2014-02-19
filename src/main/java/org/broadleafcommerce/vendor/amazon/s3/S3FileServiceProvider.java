@@ -178,12 +178,12 @@ public class S3FileServiceProvider implements FileServiceProvider {
      * @return
      */
     protected String buildResourceName(String name) {
-        if (!name.startsWith("/")) {
-            return "/" + name;
-        } else {
-            return name;
+        // Strip the starting slash to prevent empty directories in S3 as well as required references by // in the
+        // public S3 URL
+        if (name.startsWith("/")) {
+            name = name.substring(1);
         }
-
+        return name;
     }
 
     protected AmazonS3Client getAmazonS3Client(S3Configuration s3config) {
