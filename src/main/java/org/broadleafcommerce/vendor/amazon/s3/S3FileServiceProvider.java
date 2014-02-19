@@ -19,6 +19,7 @@
  */
 package org.broadleafcommerce.vendor.amazon.s3;
 
+import org.apache.commons.lang3.StringUtils;
 import org.broadleafcommerce.common.file.FileServiceException;
 import org.broadleafcommerce.common.file.domain.FileWorkArea;
 import org.broadleafcommerce.common.file.service.BroadleafFileService;
@@ -82,7 +83,7 @@ public class S3FileServiceProvider implements FileServiceProvider {
             S3Configuration s3config = s3ConfigurationService.lookupS3Configuration();
             AmazonS3Client s3 = getAmazonS3Client(s3config);
             S3Object object = s3.getObject(new GetObjectRequest(s3config.getDefaultBucketName(), buildResourceName(name)));
-
+            
             inputStream = object.getObjectContent();
 
             if (!returnFile.getParentFile().exists()) {
@@ -178,12 +179,20 @@ public class S3FileServiceProvider implements FileServiceProvider {
      * @return
      */
     protected String buildResourceName(String name) {
-        if (!name.startsWith("/")) {
-            return "/" + name;
-        } else {
-            return name;
+        // Strip the starting slash to prevent empty directories in S3 as well as required references by // in the
+        // public S3 URL
+        if (name.startsWith("/")) {
+            name = name.substring(1);
         }
-
+        String subDirectory = s3ConfigurationService.lookupS3Configuration().getBucketSubDirectory();
+        if (StringUtils.isNotEmpty(subDirectory)) {
+            if (subDirectory.startsWith("/")) {
+                subDirectory = subDirectory.substring(1);
+            }
+            name = (subDirectory.endsWith("/")) ? (subDirectory + name) : (subDirectory + "/" + name);
+        }
+        
+        return name;
     }
 
     protected AmazonS3Client getAmazonS3Client(S3Configuration s3config) {
@@ -200,7 +209,7 @@ public class S3FileServiceProvider implements FileServiceProvider {
     protected AWSCredentials getAWSCredentials(final S3Configuration s3configParam) {
         return new AWSCredentials() {
 
-            private S3Configuration s3ConfigVar = s3configParam;
+            private final S3Configuration s3ConfigVar = s3configParam;
             
             @Override
             public String getAWSSecretKey() {
