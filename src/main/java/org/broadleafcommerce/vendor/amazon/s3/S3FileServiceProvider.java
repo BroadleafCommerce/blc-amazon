@@ -191,6 +191,9 @@ public class S3FileServiceProvider implements FileServiceProvider {
         if (client == null) {
             client = new AmazonS3Client(getAWSCredentials(s3config));
             client.setRegion(RegionUtils.getRegion(s3config.getDefaultBucketRegion()));
+            if (s3config.getEndpointURI() != null) {
+                client.setEndpoint(s3config.getEndpointURI());
+            }
             configClientMap.put(s3config, client);
         }
         return client;
