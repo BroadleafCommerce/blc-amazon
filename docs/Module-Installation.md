@@ -67,3 +67,9 @@ _If you would like to store files inside of a folder within the bucket (like 'im
 _The Amazon module will default to the "us-west-2" region of S3. You can override the region by setting the following property._
 
     aws.s3.defaultBucketRegion=us-west-2
+
+_The Amazon module will default to utilize the default US endpoint "https://s3.amazonaws.com". You can override the endpoint with the following property:_
+
+    aws.s3.endpointURI=https://s3.amazonaws.com
+
+
