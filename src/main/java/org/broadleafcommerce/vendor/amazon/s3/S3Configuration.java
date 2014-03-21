@@ -31,6 +31,7 @@ public class S3Configuration {
     private String getAWSAccessKeyId;
     private String defaultBucketName;
     private String defaultBucketRegion;
+    private String endpointURI;
 
     public String getAwsSecretKey() {
         return awsSecretKey;
@@ -63,8 +64,16 @@ public class S3Configuration {
     public void setDefaultBucketRegion(String defaultBucketRegion) {
         this.defaultBucketRegion = defaultBucketRegion;
     }
+        
+    public String getEndpointURI() {
+		return endpointURI;
+	}
 
-    @Override
+	public void setEndpointURI(String endpointURI) {
+		this.endpointURI = endpointURI;
+	}
+
+	@Override
     public int hashCode() {
         final int prime = 31;
         int result = 1;

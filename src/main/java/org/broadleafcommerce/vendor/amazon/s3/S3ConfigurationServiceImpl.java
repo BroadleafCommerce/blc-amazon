@@ -47,6 +47,7 @@ public class S3ConfigurationServiceImpl implements S3ConfigurationService {
         s3config.setDefaultBucketName(lookupProperty("aws.s3.defaultBucketName"));
         s3config.setDefaultBucketRegion(lookupProperty("aws.s3.defaultBucketRegion"));
         s3config.setGetAWSAccessKeyId(lookupProperty("aws.s3.accessKeyId"));
+        s3config.setEndpointURI(lookupProperty("aws.s3.endpointURI"));
 
         boolean accessSecretKeyBlank = StringUtils.isEmpty(s3config.getAwsSecretKey());
         boolean accessKeyIdBlank = StringUtils.isEmpty(s3config.getGetAWSAccessKeyId());
