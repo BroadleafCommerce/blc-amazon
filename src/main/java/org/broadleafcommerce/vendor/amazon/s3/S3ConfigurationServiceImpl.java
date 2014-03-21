@@ -41,6 +41,7 @@ public class S3ConfigurationServiceImpl implements S3ConfigurationService {
     @Resource(name = "blSystemPropertiesService")
     protected SystemPropertiesService systemPropertiesService;
     
+    @Override
     public S3Configuration lookupS3Configuration() {
         S3Configuration s3config = new S3Configuration();
         s3config.setAwsSecretKey(lookupProperty("aws.s3.secretKey"));
@@ -48,6 +49,7 @@ public class S3ConfigurationServiceImpl implements S3ConfigurationService {
         s3config.setDefaultBucketRegion(lookupProperty("aws.s3.defaultBucketRegion"));
         s3config.setGetAWSAccessKeyId(lookupProperty("aws.s3.accessKeyId"));
         s3config.setEndpointURI(lookupProperty("aws.s3.endpointURI"));
+        s3config.setBucketSubDirectory(lookupProperty("aws.s3.bucketSubDirectory"));
 
         boolean accessSecretKeyBlank = StringUtils.isEmpty(s3config.getAwsSecretKey());
         boolean accessKeyIdBlank = StringUtils.isEmpty(s3config.getGetAWSAccessKeyId());
