@@ -41,6 +41,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -130,27 +131,33 @@ public class S3FileServiceProvider implements FileServiceProvider {
     }
 
     @Override
+    public void addOrUpdateResources(FileWorkArea workArea, List<File> files, boolean removeFilesFromWorkArea) {
+        addOrUpdateResourcesForPaths(workArea, files, removeFilesFromWorkArea);
+    }
+    
     /**
      * Writes the resource to S3.   If the bucket returns as "NoSuchBucket" then will attempt to create the bucket
      * and try again.
      */
-    public void addOrUpdateResources(FileWorkArea workArea, List<File> files, boolean removeFilesFromWorkArea) {
+    @Override
+    public List<String> addOrUpdateResourcesForPaths(FileWorkArea workArea, List<File> files, boolean removeFilesFromWorkArea) {
         S3Configuration s3config = s3ConfigurationService.lookupS3Configuration();
         AmazonS3Client s3 = getAmazonS3Client(s3config);
         
         try {           
-            addOrUpdateResourcesInternal(s3config, s3, workArea, files, removeFilesFromWorkArea);    
+            return addOrUpdateResourcesInternal(s3config, s3, workArea, files, removeFilesFromWorkArea);    
         } catch (AmazonServiceException ase) {
             if ("NoSuchBucket".equals(ase.getErrorCode())) {
-                if (s3config != null) {
-                    s3.createBucket(s3config.getDefaultBucketName());
-                    addOrUpdateResourcesInternal(s3config, s3, workArea, files, removeFilesFromWorkArea);   
-                }
+                s3.createBucket(s3config.getDefaultBucketName());
+                return addOrUpdateResourcesInternal(s3config, s3, workArea, files, removeFilesFromWorkArea);   
+            } else {
+                throw new RuntimeException(ase);
             }
         }
     }
     
-    protected void addOrUpdateResourcesInternal(S3Configuration s3config, AmazonS3Client s3, FileWorkArea workArea, List<File> files, boolean removeFilesFromWorkArea) {
+    protected List<String> addOrUpdateResourcesInternal(S3Configuration s3config, AmazonS3Client s3, FileWorkArea workArea, List<File> files, boolean removeFilesFromWorkArea) {
+        List<String> resourcePaths = new ArrayList<String>();
         for (File srcFile : files) {
             if (!srcFile.getAbsolutePath().startsWith(workArea.getFilePathLocation())) {
                 throw new FileServiceException("Attempt to update file " + srcFile.getAbsolutePath() +
@@ -158,9 +165,12 @@ public class S3FileServiceProvider implements FileServiceProvider {
             }
 
             String fileName = srcFile.getAbsolutePath().substring(workArea.getFilePathLocation().length());
-            s3.putObject(new PutObjectRequest(s3config.getDefaultBucketName(), buildResourceName(fileName),
+            String resourceName = buildResourceName(fileName);
+            s3.putObject(new PutObjectRequest(s3config.getDefaultBucketName(), resourceName,
                     srcFile));
+            resourcePaths.add(resourceName);
         }
+        return resourcePaths;
     }    
     
     
@@ -228,4 +238,5 @@ public class S3FileServiceProvider implements FileServiceProvider {
     public void setBroadleafFileService(BroadleafFileService bfs) {
         this.blFileService = bfs;
     }
+
 }
