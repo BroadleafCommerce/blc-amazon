@@ -51,6 +51,8 @@ public abstract class AbstractS3Test {
         propService.setProperty("aws.s3.secretKey", findProperty("aws.s3.secretKey", "secretKey"));
         propService.setProperty("aws.s3.defaultBucketName", findProperty("aws.s3.defaultBucketName", "bucketName"));
         propService.setProperty("aws.s3.defaultBucketRegion", findProperty("aws.s3.defaultBucketRegion", "us-west-2"));
+        propService.setProperty("aws.s3.endpointURI", findProperty("aws.s3.endpointURI", "https://s3.amazonaws.com"));
+        propService.setProperty("aws.s3.bucketSubDirectory", findProperty("aws.s3.bucketSubDirectory", ""));
     }
 
     public static class TestSystemPropertiesService extends SystemPropertiesServiceImpl {

@@ -19,6 +19,9 @@
  */
 package org.broadleafcommerce.vendor.amazon.s3;
 
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
+
 /**
  * Class that holds the configuration for connecting to AmazonS3.
  * 
@@ -31,6 +34,8 @@ public class S3Configuration {
     private String getAWSAccessKeyId;
     private String defaultBucketName;
     private String defaultBucketRegion;
+    private String endpointURI;
+    private String bucketSubDirectory;
 
     public String getAwsSecretKey() {
         return awsSecretKey;
@@ -63,37 +68,49 @@ public class S3Configuration {
     public void setDefaultBucketRegion(String defaultBucketRegion) {
         this.defaultBucketRegion = defaultBucketRegion;
     }
+        
+    public String getEndpointURI() {
+        return endpointURI;
+    }
+
+    public void setEndpointURI(String endpointURI) {
+        this.endpointURI = endpointURI;
+    }
+
+    public String getBucketSubDirectory() {
+        return bucketSubDirectory;
+    }
+
+    public void setBucketSubDirectory(String bucketSubDirectory) {
+        this.bucketSubDirectory = bucketSubDirectory;
+    }
 
     @Override
     public int hashCode() {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result + ((awsSecretKey == null) ? 0 : awsSecretKey.hashCode());
-        result = prime * result + ((defaultBucketName == null) ? 0 : defaultBucketName.hashCode());
-        result = prime * result + ((defaultBucketRegion == null) ? 0 : defaultBucketRegion.hashCode());
-        result = prime * result + ((getAWSAccessKeyId == null) ? 0 : getAWSAccessKeyId.hashCode());
-        return result;
+        return new HashCodeBuilder()
+            .append(awsSecretKey)
+            .append(awsSecretKey)
+            .append(defaultBucketRegion)
+            .append(defaultBucketRegion)
+            .append(endpointURI)
+            .append(bucketSubDirectory)
+            .build();
     }
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (obj == null) return false;
-        if (getClass() != obj.getClass()) return false;
-        S3Configuration other = (S3Configuration) obj;
-        if (awsSecretKey == null) {
-            if (other.awsSecretKey != null) return false;
-        } else if (!awsSecretKey.equals(other.awsSecretKey)) return false;
-        if (defaultBucketName == null) {
-            if (other.defaultBucketName != null) return false;
-        } else if (!defaultBucketName.equals(other.defaultBucketName)) return false;
-        if (defaultBucketRegion == null) {
-            if (other.defaultBucketRegion != null) return false;
-        } else if (!defaultBucketRegion.equals(other.defaultBucketRegion)) return false;
-        if (getAWSAccessKeyId == null) {
-            if (other.getAWSAccessKeyId != null) return false;
-        } else if (!getAWSAccessKeyId.equals(other.getAWSAccessKeyId)) return false;
-        return true;
+        if (obj instanceof S3Configuration) {
+            S3Configuration that = (S3Configuration) obj;
+            return new EqualsBuilder()
+                .append(this.awsSecretKey, that.awsSecretKey)
+                .append(this.defaultBucketName, that.defaultBucketName)
+                .append(this.defaultBucketRegion, that.defaultBucketRegion)
+                .append(this.getAWSAccessKeyId, that.getAWSAccessKeyId)
+                .append(this.endpointURI, that.endpointURI)
+                .append(this.bucketSubDirectory, that.bucketSubDirectory)
+                .build();
+        }
+        return false;
     }
 
 }
