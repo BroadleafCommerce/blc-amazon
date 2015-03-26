@@ -27,6 +27,7 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.broadleafcommerce.common.file.domain.FileWorkArea;
+import org.broadleafcommerce.common.file.service.BroadleafFileServiceExtensionManager;
 import org.broadleafcommerce.common.file.service.BroadleafFileServiceImpl;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -67,12 +68,18 @@ public class S3FileServiceProviderTest extends AbstractS3Test {
                                                     + "01234567890112345678901234\n"
                                                     + "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
+    public class S3BroadleafFileService extends BroadleafFileServiceImpl {
+        public S3BroadleafFileService() {
+            extensionManager = new BroadleafFileServiceExtensionManager();
+        }
+    }
+    
     @BeforeClass
     public static void setupProvider() {
         s3FileProvider.s3ConfigurationService = configService;
-        s3FileProvider.setBroadleafFileService(new BroadleafFileServiceImpl());
+        s3FileProvider.setBroadleafFileService(new S3FileServiceProviderTest().new S3BroadleafFileService());
     }
-        
+
     @Test
     public void testFileProcesses() throws IOException {
         resetAllProperties();
