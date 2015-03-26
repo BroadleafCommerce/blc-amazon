@@ -1,6 +1,9 @@
 # Module Installation 
 The Broadleaf Amazon module requires [configuration](#configuration-changes) and [third-party property configuration](#third-party-property-configuration)
 
+## Broadleaf Dependency
+
+Version 1.1.0-GA requires Broadleaf 4.0 or later.
 
 ## Configuration Changes
 **Step 1.**  Add the dependency management section to your **parent** `pom.xml`:
@@ -9,7 +12,7 @@ The Broadleaf Amazon module requires [configuration](#configuration-changes) and
 <dependency>
     <groupId>org.broadleafcommerce</groupId>
     <artifactId>broadleaf-amazon</artifactId>
-    <version>1.0.1-GA</version>
+    <version>1.1.0-GA</version>
     <type>jar</type>
     <scope>compile</scope>
 </dependency>
