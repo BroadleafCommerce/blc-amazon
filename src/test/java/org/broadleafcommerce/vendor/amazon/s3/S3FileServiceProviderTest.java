@@ -92,6 +92,9 @@ public class S3FileServiceProviderTest extends AbstractS3Test {
         assertTrue("File retrieved from s3 with no exception.", ok);
 
         ok = deleteTestFile(filename);
+        
+        // The file should not exist on S3
+        ok = !checkTestFileExists(filename);
         assertTrue("File removed from s3 with no exception.", ok);
     }
 
@@ -176,14 +179,15 @@ public class S3FileServiceProviderTest extends AbstractS3Test {
         boolean ok = false;
         try {
             File f = s3FileProvider.getResource(filename);
-            String content = new Scanner(f).useDelimiter("\\Z").next();
-            int contentLength = content.length();
-            if (contentLength > 10) {
-                System.out.println("Returned file contents: " + content);
-                ok = TEST_FILE_CONTENTS.equals(content);
+            if (f.exists()) {
+                String content = new Scanner(f).useDelimiter("\\Z").next();
+                int contentLength = content.length();
+                if (contentLength > 10) {
+                    System.out.println("Returned file contents: " + content);
+                    ok = TEST_FILE_CONTENTS.equals(content);
+                }
             }
         } catch (Exception e) {
-            e.printStackTrace();
             ok = false;
         }
         return ok;

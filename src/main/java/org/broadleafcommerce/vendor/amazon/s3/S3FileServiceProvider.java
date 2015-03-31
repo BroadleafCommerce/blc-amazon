@@ -76,7 +76,7 @@ public class S3FileServiceProvider implements FileServiceProvider {
 
     @Override
     public File getResource(String name, FileApplicationType fileApplicationType) {
-        File returnFile = blFileService.getLocalResource(name);
+        File returnFile = blFileService.getLocalResource(buildResourceName(name));
         OutputStream outputStream = null;
         InputStream inputStream = null;
 
@@ -106,7 +106,7 @@ public class S3FileServiceProvider implements FileServiceProvider {
             throw new RuntimeException("Error writing s3 file to local file system", ioe);
         } catch (AmazonS3Exception s3Exception) {
             if ("NoSuchKey".equals(s3Exception.getErrorCode())) {
-                return returnFile;
+                return null;
             } else {
                 throw s3Exception;
             }
@@ -180,6 +180,11 @@ public class S3FileServiceProvider implements FileServiceProvider {
         S3Configuration s3config = s3ConfigurationService.lookupS3Configuration();
         AmazonS3Client s3 = getAmazonS3Client(s3config);
         s3.deleteObject(s3config.getDefaultBucketName(), buildResourceName(name));
+
+        File returnFile = blFileService.getLocalResource(buildResourceName(name));
+        if (returnFile != null) {
+            returnFile.delete();
+        }
         return true;
     }
 
