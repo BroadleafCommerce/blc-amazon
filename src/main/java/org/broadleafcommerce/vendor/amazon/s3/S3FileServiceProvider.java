@@ -45,6 +45,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import javax.annotation.Resource;
 
@@ -106,7 +107,7 @@ public class S3FileServiceProvider implements FileServiceProvider {
             throw new RuntimeException("Error writing s3 file to local file system", ioe);
         } catch (AmazonS3Exception s3Exception) {
             if ("NoSuchKey".equals(s3Exception.getErrorCode())) {
-                return null;
+                return new File("this/path/should/not/exist/" + UUID.randomUUID());
             } else {
                 throw s3Exception;
             }
