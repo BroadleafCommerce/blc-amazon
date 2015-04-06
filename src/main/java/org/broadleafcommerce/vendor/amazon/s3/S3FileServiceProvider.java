@@ -19,12 +19,15 @@
  */
 package org.broadleafcommerce.vendor.amazon.s3;
 
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.broadleafcommerce.common.file.FileServiceException;
 import org.broadleafcommerce.common.file.domain.FileWorkArea;
 import org.broadleafcommerce.common.file.service.BroadleafFileService;
 import org.broadleafcommerce.common.file.service.FileServiceProvider;
 import org.broadleafcommerce.common.file.service.type.FileApplicationType;
+import org.broadleafcommerce.common.site.domain.Site;
+import org.broadleafcommerce.common.web.BroadleafRequestContext;
 import org.springframework.stereotype.Service;
 
 import com.amazonaws.AmazonServiceException;
@@ -67,7 +70,7 @@ public class S3FileServiceProvider implements FileServiceProvider {
 
     @Resource(name = "blFileService")
     protected BroadleafFileService blFileService;
-
+    
     protected Map<S3Configuration, AmazonS3Client> configClientMap = new HashMap<S3Configuration, AmazonS3Client>();
 
     @Override
@@ -167,9 +170,8 @@ public class S3FileServiceProvider implements FileServiceProvider {
 
             String fileName = srcFile.getAbsolutePath().substring(workArea.getFilePathLocation().length());
             String resourceName = buildResourceName(fileName);
-            s3.putObject(new PutObjectRequest(s3config.getDefaultBucketName(), resourceName,
-                    srcFile));
-            resourcePaths.add(resourceName);
+            s3.putObject(new PutObjectRequest(s3config.getDefaultBucketName(), resourceName, srcFile));
+            resourcePaths.add(fileName);
         }
         return resourcePaths;
     }    
@@ -200,16 +202,42 @@ public class S3FileServiceProvider implements FileServiceProvider {
         if (name.startsWith("/")) {
             name = name.substring(1);
         }
-        String subDirectory = s3ConfigurationService.lookupS3Configuration().getBucketSubDirectory();
-        if (StringUtils.isNotEmpty(subDirectory)) {
-            if (subDirectory.startsWith("/")) {
-                subDirectory = subDirectory.substring(1);
+
+        String baseDirectory = s3ConfigurationService.lookupS3Configuration().getBucketSubDirectory();
+        if (StringUtils.isNotEmpty(baseDirectory)) {
+            if (baseDirectory.startsWith("/")) {
+                baseDirectory = baseDirectory.substring(1);
             }
-            name = (subDirectory.endsWith("/")) ? (subDirectory + name) : (subDirectory + "/" + name);
+        } else {
+            // ensure subDirectory is non-null
+            baseDirectory = "";
         }
         
-        return name;
+        String siteSpecificResourceName = getSiteSpecificResourceName(name);
+        return FilenameUtils.concat(baseDirectory, siteSpecificResourceName);
     }
+    
+    protected String getSiteSpecificResourceName(String resourceName) {
+        BroadleafRequestContext brc = BroadleafRequestContext.getBroadleafRequestContext();
+        if (brc != null) {
+            Site site = brc.getNonPersistentSite();
+            if (site != null) {
+                String siteDirectory = getSiteDirectory(site);
+                if (resourceName.startsWith("/")) {
+                    resourceName = resourceName.substring(1);
+                }
+                return FilenameUtils.concat(siteDirectory, resourceName);
+            }
+        }
+
+        return resourceName;
+    }
+
+    protected String getSiteDirectory(Site site) {
+        String siteDirectory = "site-" + site.getId();
+        return siteDirectory;
+    }
+    
     protected AmazonS3Client getAmazonS3Client(S3Configuration s3config) {
         AmazonS3Client client = configClientMap.get(s3config);
         if (client == null) {

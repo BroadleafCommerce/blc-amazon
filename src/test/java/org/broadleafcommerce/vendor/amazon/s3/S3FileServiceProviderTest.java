@@ -23,12 +23,15 @@ package org.broadleafcommerce.vendor.amazon.s3;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.broadleafcommerce.common.file.domain.FileWorkArea;
 import org.broadleafcommerce.common.file.service.BroadleafFileServiceExtensionManager;
 import org.broadleafcommerce.common.file.service.BroadleafFileServiceImpl;
+import org.broadleafcommerce.common.site.domain.SiteImpl;
+import org.broadleafcommerce.common.web.BroadleafRequestContext;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -85,7 +88,7 @@ public class S3FileServiceProviderTest extends AbstractS3Test {
         resetAllProperties();
         //AbstractS3Test.propService.setProperty("aws.s3.bucketSubDirectory", "img");
         String filename = "blcTestFile.txt";
-        boolean ok = uploadTestFile(filename);
+        boolean ok = uploadTestFileTestOk(filename);
         assertTrue("File added to s3 with no exception.", ok);
 
         ok = checkTestFileExists(filename);
@@ -114,6 +117,45 @@ public class S3FileServiceProviderTest extends AbstractS3Test {
         verifyFileUploadRaw(filename, subDirectory);
     }
     
+    @Test
+    public void testSiteSpecificFile() throws IOException {
+        // initialize the site before resetting properties to get the properties cache right
+        BroadleafRequestContext context = new BroadleafRequestContext();
+        SiteImpl site = new SiteImpl();
+        site.setId(10l);
+        site.setName("Test Site");
+        context.setNonPersistentSite(site);
+        BroadleafRequestContext.setBroadleafRequestContext(context);
+ 
+        resetAllProperties();
+       
+        String filename = "/blcTestFile.txt";
+        String subDirectory = "/img/";
+        verifyFileUploadRaw(filename, subDirectory);
+        
+        BroadleafRequestContext.setBroadleafRequestContext(new BroadleafRequestContext());
+    }
+    
+    @Test
+    public void testRemoveAddedResourceByName() {
+        resetAllProperties();
+        String fileName = "blcTestFile.txt";
+        propService.setProperty("aws.s3.bucketSubDirectory", "/img/");
+        List<String> resourceNames = uploadTestFileWithResult(fileName);
+        assertTrue("No resource names return", CollectionUtils.isNotEmpty(resourceNames));
+        assertTrue("More than 1 resource returned when only uploading a single resource", resourceNames.size() == 1);
+        
+        assertTrue(s3FileProvider.removeResource(resourceNames.get(0)));
+    }
+    
+    @Test
+    public void testNotFoundReturnsNonExistentFile() {
+        resetAllProperties();
+        File file = s3FileProvider.getResource("blahblahgarbledygoopcannotfind.ext");
+        assertTrue("The returned file should not exist", !file.exists());
+    }
+    
+    @Test
     public void testSubDirectoryTree() throws IOException {
         resetAllProperties();
         String filename = "/blcTestFile.txt";
@@ -125,7 +167,7 @@ public class S3FileServiceProviderTest extends AbstractS3Test {
      * Differs from {@link #checkTestFileExists(String)} in that this uses the S3 client directly and does
      * not go through the Broadleaf file service API. This will create a test file, upload it to S3 via the
      * Broadleaf file service API, verify that the file exists via the raw S3 client, and then delete the file
-     * from the buck via the file service API again
+     * from the bucket via the file service API again
      * 
      * @param filename the name of the file to upload
      * @param directoryName directory that the file should be stored in on S3
@@ -133,21 +175,22 @@ public class S3FileServiceProviderTest extends AbstractS3Test {
     protected void verifyFileUploadRaw(String filename, String directoryName) throws IOException {
         propService.setProperty("aws.s3.bucketSubDirectory", directoryName);
         
-        boolean ok = uploadTestFile(filename);
+        boolean ok = uploadTestFileTestOk(filename);
         assertTrue("File added to s3 with no exception.", ok);
         
         // Use the S3 client directly to ensure that it was uploaded to the sub-directory
         S3Configuration s3config = configService.lookupS3Configuration();
         AmazonS3Client s3 = s3FileProvider.getAmazonS3Client(s3config);
         s3.setRegion(RegionUtils.getRegion(s3config.getDefaultBucketRegion()));
-        String s3Key = filename;
+        String s3Key = s3FileProvider.getSiteSpecificResourceName(filename);
         if (StringUtils.isNotEmpty(directoryName)) {
-            s3Key = directoryName + "/" + filename;
+            s3Key = directoryName + "/" + s3Key;
         }
         
         // Replace the starting slash and remove the double-slashes if the directory ended with a slash
         s3Key = s3Key.startsWith("/") ? s3Key.substring(1) : s3Key;
         s3Key = FilenameUtils.normalize(s3Key);
+        
         S3Object object = s3.getObject(new GetObjectRequest(s3config.getDefaultBucketName(), s3Key));
       
         InputStream inputStream = object.getObjectContent();
@@ -180,12 +223,15 @@ public class S3FileServiceProviderTest extends AbstractS3Test {
         try {
             File f = s3FileProvider.getResource(filename);
             if (f.exists()) {
-                String content = new Scanner(f).useDelimiter("\\Z").next();
+                Scanner fileScanner = new Scanner(f);
+                fileScanner.useDelimiter("\\Z");
+                String content = fileScanner.next();
                 int contentLength = content.length();
                 if (contentLength > 10) {
                     System.out.println("Returned file contents: " + content);
                     ok = TEST_FILE_CONTENTS.equals(content);
                 }
+                fileScanner.close();
             }
         } catch (Exception e) {
             ok = false;
@@ -193,10 +239,20 @@ public class S3FileServiceProviderTest extends AbstractS3Test {
         return ok;
     }
 
-    protected boolean uploadTestFile(String filename) {
+    protected boolean uploadTestFileTestOk(String filename) {
         boolean ok;
         try {
-
+            uploadTestFileWithResult(filename);
+            ok = true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            ok = false;
+        }
+        return ok;
+    }
+    
+    protected List<String> uploadTestFileWithResult(String filename) {
+        try {
             // Add the file to the amazon bucket.
             List<File> files = new ArrayList<File>();
             File sampleFile = createSampleFile(filename);
@@ -204,13 +260,10 @@ public class S3FileServiceProviderTest extends AbstractS3Test {
             File parentFile = sampleFile.getAbsoluteFile().getParentFile();
             workArea.setFilePathLocation(parentFile.getAbsolutePath());
             files.add(sampleFile);
-            s3FileProvider.addOrUpdateResources(workArea, files, false);
-            ok = true;
-        } catch (Exception e) {
-            e.printStackTrace();
-            ok = false;
+            return s3FileProvider.addOrUpdateResourcesForPaths(workArea, files, false);
+        } catch (IOException e) {
+            return new ArrayList<String>();
         }
-        return ok;
     }
     
     private static File createSampleFile(String fileName) throws IOException {
