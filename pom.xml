@@ -17,7 +17,7 @@
     <artifactId>broadleaf-amazon</artifactId>
     <name>BroadleafCommerce Amazon Integrations</name>
     <description>BroadleafCommerce Amazon Integrations</description>
-    <version>1.1.0-SNAPSHOT</version>
+    <version>1.1.0-GA</version>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <blc.version>4.0.0-GA</blc.version>
