@@ -21,12 +21,19 @@ package org.broadleafcommerce.vendor.amazon.s3;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.broadleafcommerce.cms.file.domain.StaticAsset;
+import org.broadleafcommerce.cms.file.service.StaticAssetService;
+import org.broadleafcommerce.common.extensibility.jpa.SiteDiscriminator;
+import org.broadleafcommerce.common.extension.ExtensionResultHolder;
+import org.broadleafcommerce.common.extension.ExtensionResultStatusType;
 import org.broadleafcommerce.common.file.FileServiceException;
 import org.broadleafcommerce.common.file.domain.FileWorkArea;
 import org.broadleafcommerce.common.file.service.BroadleafFileService;
+import org.broadleafcommerce.common.file.service.BroadleafFileServiceExtensionManager;
 import org.broadleafcommerce.common.file.service.FileServiceProvider;
 import org.broadleafcommerce.common.file.service.type.FileApplicationType;
 import org.broadleafcommerce.common.site.domain.Site;
+import org.broadleafcommerce.common.site.service.SiteService;
 import org.broadleafcommerce.common.web.BroadleafRequestContext;
 import org.springframework.stereotype.Service;
 
@@ -73,6 +80,15 @@ public class S3FileServiceProvider implements FileServiceProvider {
     
     protected Map<S3Configuration, AmazonS3Client> configClientMap = new HashMap<S3Configuration, AmazonS3Client>();
 
+    @Resource(name = "blBroadleafFileServiceExtensionManager")
+    protected BroadleafFileServiceExtensionManager extensionManager;
+
+    @Resource(name = "blStaticAssetService")
+    protected StaticAssetService staticAssetService;
+
+    @Resource(name = "blSiteService")
+    protected SiteService siteService;
+
     @Override
     public File getResource(String name) {
         return getResource(name, FileApplicationType.ALL);
@@ -87,7 +103,7 @@ public class S3FileServiceProvider implements FileServiceProvider {
         try {
             S3Configuration s3config = s3ConfigurationService.lookupS3Configuration();
             AmazonS3Client s3 = getAmazonS3Client(s3config);
-            S3Object object = s3.getObject(new GetObjectRequest(s3config.getDefaultBucketName(), buildResourceName(name)));
+            S3Object object = s3.getObject(new GetObjectRequest(s3config.getDefaultBucketName(),buildResourceName(name)));
             
             inputStream = object.getObjectContent();
 
@@ -193,6 +209,8 @@ public class S3FileServiceProvider implements FileServiceProvider {
 
     /**
      * hook for overriding name used for resource in S3
+     * First we look for file on local fileSystem; If we can't find it locally,
+     * then we use query the database to get the exact name of the asset so that we only make one API call to Amazon.
      * @param name
      * @return
      */
@@ -212,24 +230,58 @@ public class S3FileServiceProvider implements FileServiceProvider {
             // ensure subDirectory is non-null
             baseDirectory = "";
         }
-        
-        String siteSpecificResourceName = getSiteSpecificResourceName(name);
-        return FilenameUtils.concat(baseDirectory, siteSpecificResourceName);
+
+        ExtensionResultHolder<String> resultHolder = new ExtensionResultHolder<>();
+        ExtensionResultHolder<String> holder = new ExtensionResultHolder<String>();
+        if (extensionManager != null) {
+            ExtensionResultStatusType result = extensionManager.getProxy().processPathForSite(baseDirectory, name, holder);
+            // First we look for file on local fileSystem.
+            // If we can't find it locally then we use query the database to get the exact name
+            // of the asset so that we only make one API call to Amazon.
+            if (!ExtensionResultStatusType.NOT_HANDLED.equals(result)) {
+                name = resultHolder.getResult();
+            } else {
+                // We want to add the slash back to the name to find the Asset based on url from the database
+                if (!name.startsWith("/")) {
+                    name = "/"+name;
+                }
+                StaticAsset asset = staticAssetService.findStaticAssetByFullUrl(name);
+                Site site = BroadleafRequestContext.getBroadleafRequestContext().getNonPersistentSite();
+                if (asset != null && SiteDiscriminator.class.isAssignableFrom(asset.getClass())) {
+                     Long siteId = ((SiteDiscriminator)asset).getSiteDiscriminator();
+                     site = siteService.retrieveNonPersistentSiteById(siteId);
+                }
+                String siteSpecificResourceName = getSiteSpecificResourceName(name,site);
+                name = FilenameUtils.concat(baseDirectory, siteSpecificResourceName);
+            }
+        }
+        return name;
     }
-    
+
+    /**
+     * helper method to get the site specific resource-name.
+     * @param resourceName
+     * @param site
+     * @return
+     */
+    protected String getSiteSpecificResourceName(String resourceName,Site site) {
+        if (site != null) {
+            String siteDirectory = getSiteDirectory(site);
+            if (resourceName.startsWith("/")) {
+                resourceName = resourceName.substring(1);
+            }
+            return FilenameUtils.concat(siteDirectory, resourceName);
+        }
+        return resourceName;
+    }
+
+    @Deprecated
     protected String getSiteSpecificResourceName(String resourceName) {
         BroadleafRequestContext brc = BroadleafRequestContext.getBroadleafRequestContext();
         if (brc != null) {
             Site site = brc.getNonPersistentSite();
-            if (site != null) {
-                String siteDirectory = getSiteDirectory(site);
-                if (resourceName.startsWith("/")) {
-                    resourceName = resourceName.substring(1);
-                }
-                return FilenameUtils.concat(siteDirectory, resourceName);
-            }
+           return getSiteSpecificResourceName(resourceName,site);
         }
-
         return resourceName;
     }
 
