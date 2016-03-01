@@ -21,9 +21,6 @@ package org.broadleafcommerce.vendor.amazon.s3;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.broadleafcommerce.cms.file.domain.StaticAsset;
-import org.broadleafcommerce.cms.file.service.StaticAssetService;
-import org.broadleafcommerce.common.extensibility.jpa.SiteDiscriminator;
 import org.broadleafcommerce.common.extension.ExtensionResultHolder;
 import org.broadleafcommerce.common.extension.ExtensionResultStatusType;
 import org.broadleafcommerce.common.file.FileServiceException;
@@ -83,9 +80,6 @@ public class S3FileServiceProvider implements FileServiceProvider {
     @Resource(name = "blBroadleafFileServiceExtensionManager")
     protected BroadleafFileServiceExtensionManager extensionManager;
 
-    @Resource(name = "blStaticAssetService")
-    protected StaticAssetService staticAssetService;
-
     @Resource(name = "blSiteService")
     protected SiteService siteService;
 
@@ -96,15 +90,42 @@ public class S3FileServiceProvider implements FileServiceProvider {
 
     @Override
     public File getResource(String name, FileApplicationType fileApplicationType) {
-        File returnFile = blFileService.getLocalResource(buildResourceName(name));
+        File returnFile = blFileService.getLocalResource(getResourceName(name));
         OutputStream outputStream = null;
         InputStream inputStream = null;
 
         try {
             S3Configuration s3config = s3ConfigurationService.lookupS3Configuration();
             AmazonS3Client s3 = getAmazonS3Client(s3config);
-            S3Object object = s3.getObject(new GetObjectRequest(s3config.getDefaultBucketName(),buildResourceName(name)));
-            
+            String resourceName = getResourceName(name);
+            S3Object object = null;
+            // If we could not resolve the resource locally, we will then attempt to find on the S3 server
+            // using all possible resource names.
+            if (StringUtils.isEmpty(resourceName)) {
+                List<String> possibleResourceNames = getPossibleResourceNames(name);
+                for (String path : possibleResourceNames) {
+                    try {
+                        object = s3.getObject(new GetObjectRequest(s3config.getDefaultBucketName(),path));
+                        if (object != null) {
+                            break;
+                        }
+                    }
+                    catch (AmazonS3Exception s3Exception) {
+                        if ("NoSuchKey".equals(s3Exception.getErrorCode())) {
+                            continue;
+                        } else {
+                            throw s3Exception;
+                        }
+                    }
+                }
+            } else {
+                object = s3.getObject(new GetObjectRequest(s3config.getDefaultBucketName(),resourceName));
+            }
+
+            if (object == null) {
+                return new File("this/path/should/not/exist/" + UUID.randomUUID());
+            }
+
             inputStream = object.getObjectContent();
 
             if (!returnFile.getParentFile().exists()) {
@@ -115,10 +136,10 @@ public class S3FileServiceProvider implements FileServiceProvider {
                     }
                 }
             }
+
             outputStream = new FileOutputStream(returnFile);
             int read = 0;
             byte[] bytes = new byte[1024];
-
             while ((read = inputStream.read(bytes)) != -1) {
                 outputStream.write(bytes, 0, read);
             }
@@ -144,7 +165,6 @@ public class S3FileServiceProvider implements FileServiceProvider {
                 } catch (IOException e) {
                     throw new RuntimeException("Error closing output stream while writing s3 file to file system", e);
                 }
-
             }
         }
         return returnFile;
@@ -191,15 +211,12 @@ public class S3FileServiceProvider implements FileServiceProvider {
         }
         return resourcePaths;
     }    
-    
-    
 
     @Override
     public boolean removeResource(String name) {
         S3Configuration s3config = s3ConfigurationService.lookupS3Configuration();
         AmazonS3Client s3 = getAmazonS3Client(s3config);
         s3.deleteObject(s3config.getDefaultBucketName(), buildResourceName(name));
-
         File returnFile = blFileService.getLocalResource(buildResourceName(name));
         if (returnFile != null) {
             returnFile.delete();
@@ -209,8 +226,6 @@ public class S3FileServiceProvider implements FileServiceProvider {
 
     /**
      * hook for overriding name used for resource in S3
-     * First we look for file on local fileSystem; If we can't find it locally,
-     * then we use query the database to get the exact name of the asset so that we only make one API call to Amazon.
      * @param name
      * @return
      */
@@ -231,31 +246,93 @@ public class S3FileServiceProvider implements FileServiceProvider {
             baseDirectory = "";
         }
 
-        ExtensionResultHolder<String> resultHolder = new ExtensionResultHolder<>();
+        String siteSpecificResourceName = getSiteSpecificResourceName(name);
+        String resourceName = FilenameUtils.concat(baseDirectory, siteSpecificResourceName);
+
+        return resourceName;
+    }
+
+    /**
+     * hook for finding the resource name used for resource in S3
+     * First we look for file on local fileSystem; If we can't find it locally,
+     * then we make at most 2 calls API call to Amazon.
+     * @param name
+     * @return
+     */
+    public String getResourceName(String name) {
+        // Strip the starting slash to prevent empty directories in S3 as well as required references by // in the
+        // public S3 URL
+        if (name.startsWith("/")) {
+            name = name.substring(1);
+        }
+
+        String resourceName = null;
+        String baseDirectory = s3ConfigurationService.lookupS3Configuration().getBucketSubDirectory();
+        if (StringUtils.isNotEmpty(baseDirectory)) {
+            if (baseDirectory.startsWith("/")) {
+                baseDirectory = baseDirectory.substring(1);
+            }
+        } else {
+            // ensure subDirectory is non-null
+            baseDirectory = "";
+        }
+
         ExtensionResultHolder<String> holder = new ExtensionResultHolder<String>();
         if (extensionManager != null) {
             ExtensionResultStatusType result = extensionManager.getProxy().processPathForSite(baseDirectory, name, holder);
             // First we look for file on local fileSystem.
-            // If we can't find it locally then we use query the database to get the exact name
-            // of the asset so that we only make one API call to Amazon.
             if (!ExtensionResultStatusType.NOT_HANDLED.equals(result)) {
-                name = resultHolder.getResult();
-            } else {
-                // We want to add the slash back to the name to find the Asset based on url from the database
-                if (!name.startsWith("/")) {
-                    name = "/"+name;
-                }
-                StaticAsset asset = staticAssetService.findStaticAssetByFullUrl(name);
-                Site site = BroadleafRequestContext.getBroadleafRequestContext().getNonPersistentSite();
-                if (asset != null && SiteDiscriminator.class.isAssignableFrom(asset.getClass())) {
-                     Long siteId = ((SiteDiscriminator)asset).getSiteDiscriminator();
-                     site = siteService.retrieveNonPersistentSiteById(siteId);
-                }
-                String siteSpecificResourceName = getSiteSpecificResourceName(name,site);
-                name = FilenameUtils.concat(baseDirectory, siteSpecificResourceName);
+                resourceName = holder.getResult();
             }
         }
-        return name;
+
+        return resourceName;
+    }
+
+    /**
+     * Helper method to build a list of possible variations of the resource path.
+     * we will have to strip out any extraneous path data since this provider only
+     * builds path names with a certain way. {@see S3FileServiceProvider#buildResourceName}
+     * @param name
+     * @return
+     */
+    protected List<String> getPossibleResourceNames(String name) {
+        List<String> possibleNames = new ArrayList<>();
+        // Strip the starting slash to prevent empty directories in S3 as well as required references by // in the
+        // public S3 URL
+        if (name.startsWith("/")) {
+            name = name.substring(1);
+        }
+        String baseDirectory = s3ConfigurationService.lookupS3Configuration().getBucketSubDirectory();
+        if (StringUtils.isNotEmpty(baseDirectory)) {
+            if (baseDirectory.startsWith("/")) {
+                baseDirectory = baseDirectory.substring(1);
+            }
+        } else {
+            // ensure subDirectory is non-null
+            baseDirectory = "";
+        }
+
+        ExtensionResultHolder<List<String>> holder = new ExtensionResultHolder<List<String>>();
+        List<String> returnedNames = new ArrayList<>();
+        if (extensionManager != null) {
+            ExtensionResultStatusType result = extensionManager.getProxy().retrieveAllSitePaths(baseDirectory, name, holder);
+            // return a list of all possible paths
+            if (!ExtensionResultStatusType.NOT_HANDLED.equals(result)) {
+                returnedNames = holder.getResult();
+            }
+        }
+
+        for(String possibleName : returnedNames) {
+            int prefixLocation = possibleName.indexOf(baseDirectory);
+            String prefix = possibleName.substring(prefixLocation,prefixLocation + baseDirectory.length());
+            int siteLocation = possibleName.lastIndexOf("site-");
+            String siteURL  = possibleName.substring(siteLocation);
+            possibleName =  FilenameUtils.concat(prefix, siteURL);
+            possibleNames.add(possibleName);
+        }
+
+        return possibleNames;
     }
 
     /**
