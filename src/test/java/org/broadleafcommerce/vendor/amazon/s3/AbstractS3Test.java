@@ -69,7 +69,7 @@ public abstract class AbstractS3Test {
 
             returnName = System.getProperty(propertyName);
             if (returnName == null) {
-                InputStream path = this.getClass().getResourceAsStream("/config/bc/amazon/common.properties");
+                InputStream path = this.getClass().getResourceAsStream("/config/bc/override/common.properties");
                 if (path != null) {
                     properties.load(path);
                 }
