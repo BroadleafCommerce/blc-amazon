@@ -90,7 +90,7 @@ public class S3FileServiceProvider implements FileServiceProvider {
 
     @Override
     public File getResource(String name, FileApplicationType fileApplicationType) {
-        File returnFile = blFileService.getLocalResource(getResourceName(name));
+        File returnFile;
         OutputStream outputStream = null;
         InputStream inputStream = null;
 
@@ -102,6 +102,7 @@ public class S3FileServiceProvider implements FileServiceProvider {
             // If we could not resolve the resource locally, we will then attempt to find on the S3 server
             // using all possible resource names.
             if (StringUtils.isEmpty(resourceName)) {
+                returnFile = blFileService.getLocalResource(buildResourceName(name));
                 List<String> possibleResourceNames = getPossibleResourceNames(name);
                 for (String path : possibleResourceNames) {
                     try {
@@ -118,15 +119,14 @@ public class S3FileServiceProvider implements FileServiceProvider {
                         }
                     }
                 }
+                if (object == null) {
+                    return new File("this/path/should/not/exist/" + UUID.randomUUID());
+                }
+
+                inputStream = object.getObjectContent();
             } else {
-                object = s3.getObject(new GetObjectRequest(s3config.getDefaultBucketName(),resourceName));
+                returnFile = blFileService.getLocalResource(getResourceName(resourceName));
             }
-
-            if (object == null) {
-                return new File("this/path/should/not/exist/" + UUID.randomUUID());
-            }
-
-            inputStream = object.getObjectContent();
 
             if (!returnFile.getParentFile().exists()) {
                 if (!returnFile.getParentFile().mkdirs()) {
@@ -225,37 +225,8 @@ public class S3FileServiceProvider implements FileServiceProvider {
     }
 
     /**
-     * hook for overriding name used for resource in S3
-     * @param name
-     * @return
-     */
-    protected String buildResourceName(String name) {
-        // Strip the starting slash to prevent empty directories in S3 as well as required references by // in the
-        // public S3 URL
-        if (name.startsWith("/")) {
-            name = name.substring(1);
-        }
-
-        String baseDirectory = s3ConfigurationService.lookupS3Configuration().getBucketSubDirectory();
-        if (StringUtils.isNotEmpty(baseDirectory)) {
-            if (baseDirectory.startsWith("/")) {
-                baseDirectory = baseDirectory.substring(1);
-            }
-        } else {
-            // ensure subDirectory is non-null
-            baseDirectory = "";
-        }
-
-        String siteSpecificResourceName = getSiteSpecificResourceName(name);
-        String resourceName = FilenameUtils.concat(baseDirectory, siteSpecificResourceName);
-
-        return resourceName;
-    }
-
-    /**
-     * hook for finding the resource name used for resource in S3
-     * First we look for file on local fileSystem; If we can't find it locally,
-     * then we make at most 2 calls API call to Amazon.
+     * hook for finding the resource name used for resource in the local fileSystem.
+     * If a resource can not be found locally, this function will return null
      * @param name
      * @return
      */
@@ -314,25 +285,55 @@ public class S3FileServiceProvider implements FileServiceProvider {
         }
 
         ExtensionResultHolder<List<String>> holder = new ExtensionResultHolder<List<String>>();
-        List<String> returnedNames = new ArrayList<>();
         if (extensionManager != null) {
+            List<String> extensionManagerNames = new ArrayList<>();
             ExtensionResultStatusType result = extensionManager.getProxy().retrieveAllSitePaths(baseDirectory, name, holder);
             // return a list of all possible paths
             if (!ExtensionResultStatusType.NOT_HANDLED.equals(result)) {
-                returnedNames = holder.getResult();
+                extensionManagerNames = holder.getResult();
+            }
+            // sanitize list from extensionManager
+            for(String possibleName : extensionManagerNames) {
+                int prefixLocation = possibleName.indexOf(baseDirectory);
+                String prefix = possibleName.substring(prefixLocation,prefixLocation + baseDirectory.length());
+                int siteLocation = possibleName.lastIndexOf("site-");
+                String siteURL  = possibleName.substring(siteLocation);
+                possibleName =  FilenameUtils.concat(prefix, siteURL);
+                possibleNames.add(possibleName);
             }
         }
 
-        for(String possibleName : returnedNames) {
-            int prefixLocation = possibleName.indexOf(baseDirectory);
-            String prefix = possibleName.substring(prefixLocation,prefixLocation + baseDirectory.length());
-            int siteLocation = possibleName.lastIndexOf("site-");
-            String siteURL  = possibleName.substring(siteLocation);
-            possibleName =  FilenameUtils.concat(prefix, siteURL);
-            possibleNames.add(possibleName);
-        }
+        possibleNames.add(buildResourceName(name));
 
         return possibleNames;
+    }
+
+    /**
+     * hook for overriding name used for resource in S3
+     * @param name
+     * @return
+     */
+    protected String buildResourceName(String name) {
+        // Strip the starting slash to prevent empty directories in S3 as well as required references by // in the
+        // public S3 URL
+        if (name.startsWith("/")) {
+            name = name.substring(1);
+        }
+
+        String baseDirectory = s3ConfigurationService.lookupS3Configuration().getBucketSubDirectory();
+        if (StringUtils.isNotEmpty(baseDirectory)) {
+            if (baseDirectory.startsWith("/")) {
+                baseDirectory = baseDirectory.substring(1);
+            }
+        } else {
+            // ensure subDirectory is non-null
+            baseDirectory = "";
+        }
+
+        String siteSpecificResourceName = getSiteSpecificResourceName(name);
+        String resourceName = FilenameUtils.concat(baseDirectory, siteSpecificResourceName);
+
+        return resourceName;
     }
 
     /**
