@@ -58,12 +58,12 @@
         <repository>
             <id>public snapshots</id>
             <name>public snapshots</name>
-            <url>http://www.broadleafcommerce.org/nexus/content/repositories/snapshots</url>
+            <url>http://nexus.broadleafcommerce.org/nexus/content/repositories/snapshots</url>
         </repository>
         <repository>
             <id>public releases</id>
             <name>public releases</name>
-            <url>http://www.broadleafcommerce.org/nexus/content/repositories/releases</url>
+            <url>http://nexus.broadleafcommerce.org/nexus/content/repositories/releases</url>
         </repository>
     </repositories>
 
@@ -93,39 +93,17 @@
     
     <!-- On normal releases (GA) this should go to Maven central -->        
     <distributionManagement>
-        <repository>
+        <snapshotRepository>
             <id>public snapshots</id>
             <name>public snapshots</name>
-            <url>http://www.broadleafcommerce.org/nexus/content/repositories/snapshots</url>
-        </repository>
+            <url>http://nexus.broadleafcommerce.org/nexus/content/repositories/snapshots</url>
+        </snapshotRepository>
         <repository>
             <id>public releases</id>
             <name>public releases</name>
-            <url>http://www.broadleafcommerce.org/nexus/content/repositories/releases</url>
+            <url>http://nexus.broadleafcommerce.org/nexus/content/repositories/releases</url>
         </repository>
     </distributionManagement>
-
-    <profiles>
-        <profile>
-            <id>sources</id>
-            <activation>
-                <property>
-                    <name>attachSources</name>
-                    <value>true</value>
-                </property>
-            </activation>
-            <distributionManagement>
-                <snapshotRepository>
-                    <id>snapshots</id>
-                    <url>http://nexus.broadleafcommerce.org/nexus/content/repositories/snapshots/</url>
-                </snapshotRepository>
-                <repository>
-                    <id>releases</id>
-                    <url>http://nexus.broadleafcommerce.org/nexus/content/repositories/releases/</url>
-                </repository>
-            </distributionManagement>
-        </profile>
-    </profiles>
 
     <dependencies>
         <dependency>
