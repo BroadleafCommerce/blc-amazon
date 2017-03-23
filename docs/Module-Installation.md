@@ -12,7 +12,7 @@ Version 1.1.0-GA requires Broadleaf 4.0 or later.
 <dependency>
     <groupId>org.broadleafcommerce</groupId>
     <artifactId>broadleaf-amazon</artifactId>
-    <version>1.1.0-GA</version>
+    <version>2.1.0-GA</version>
     <type>jar</type>
     <scope>compile</scope>
 </dependency>
@@ -26,22 +26,6 @@ Version 1.1.0-GA requires Broadleaf 4.0 or later.
     <artifactId>broadleaf-amazon</artifactId>
 </dependency>
 ```
-
-**Step 3.** Include the necessary `patchConfigLocation` files in your `admin/web.xml`:
-
-```xml
-classpath:/bl-amazon-applicationContext.xml
-```
->Note: This line should go before the `classpath:/applicationContext.xml` line
-
-
-**Step 4.** Include the necessary `patchConfigLocation` files in your `site/web.xml`:
-
-```xml
-classpath:/bl-amazon-applicationContext.xml
-```
->Note: This line should go before the `classpath:/applicationContext.xml` line
-
 
 ## Third Party Property Configuration
 This module requires you to configure properties specific to your amazon account.   
