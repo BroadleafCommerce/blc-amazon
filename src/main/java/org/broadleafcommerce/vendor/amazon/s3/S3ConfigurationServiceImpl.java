@@ -48,13 +48,16 @@ public class S3ConfigurationServiceImpl implements S3ConfigurationService {
         s3config.setGetAWSAccessKeyId(lookupProperty("aws.s3.accessKeyId"));
         s3config.setEndpointURI(lookupProperty("aws.s3.endpointURI"));
         s3config.setBucketSubDirectory(lookupProperty("aws.s3.bucketSubDirectory"));
+        s3config.setUseInstanceProfileCredentials(Boolean.parseBoolean(lookupProperty("aws.s3.useInstanceProfile")));
 
         boolean accessSecretKeyBlank = StringUtils.isEmpty(s3config.getAwsSecretKey());
         boolean accessKeyIdBlank = StringUtils.isEmpty(s3config.getGetAWSAccessKeyId());
         boolean bucketNameBlank = StringUtils.isEmpty(s3config.getDefaultBucketName());
+        boolean useInstanceProfile = s3config.getUseInstanceProfileCredentials();
         Region region = RegionUtils.getRegion(s3config.getDefaultBucketRegion());
+        boolean canRetrieveCredentials = !(accessSecretKeyBlank || accessKeyIdBlank) || useInstanceProfile;
         
-        if (region == null || accessSecretKeyBlank || accessKeyIdBlank || bucketNameBlank) {
+        if (region == null || !canRetrieveCredentials || bucketNameBlank) {
             StringBuilder errorMessage = new StringBuilder("Amazon S3 Configuration Error : ");
 
             if (accessSecretKeyBlank) {
@@ -67,6 +70,10 @@ public class S3ConfigurationServiceImpl implements S3ConfigurationService {
 
             if (bucketNameBlank) {
                 errorMessage.append("aws.s3.defaultBucketName was blank,");
+            }
+
+            if (!useInstanceProfile) {
+                errorMessage.append("aws.s3.useInstanceProfile was blank or false,");
             }
 
             if (region == null) {

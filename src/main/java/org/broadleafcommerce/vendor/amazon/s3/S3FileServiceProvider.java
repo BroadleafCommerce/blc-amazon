@@ -17,6 +17,7 @@
  */
 package org.broadleafcommerce.vendor.amazon.s3;
 
+import com.amazonaws.auth.InstanceProfileCredentialsProvider;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.broadleafcommerce.common.file.FileServiceException;
@@ -59,6 +60,7 @@ import javax.annotation.Resource;
  * <code>blFileService</code> to determine the local file path.
  *    
  * @author bpolster
+ * @author Mike Garrett
  *
  */
 public class S3FileServiceProvider implements FileServiceProvider {
@@ -239,13 +241,32 @@ public class S3FileServiceProvider implements FileServiceProvider {
     protected AmazonS3Client getAmazonS3Client(S3Configuration s3config) {
         AmazonS3Client client = configClientMap.get(s3config);
         if (client == null) {
-            client = new AmazonS3Client(getAWSCredentials(s3config));
+            client = getAmazonS3ClientFromConfiguration(s3config);
             client.setRegion(RegionUtils.getRegion(s3config.getDefaultBucketRegion()));
             if (s3config.getEndpointURI() != null) {
                 client.setEndpoint(s3config.getEndpointURI());
             }
             configClientMap.put(s3config, client);
         }
+        return client;
+    }
+
+    /**
+     * Creates an instance of the S3 Client based on the 'use instance profile' property.
+     * If it exists, it retrieves credentials from the IAM role (valid only on EC2 instances).
+     * Otherwise, a secret key and access key ID must be provided.
+     * @param s3config Configuration object
+     * @return an authenticated AmazonS3Client
+     */
+    protected AmazonS3Client getAmazonS3ClientFromConfiguration(S3Configuration s3config) {
+        final AmazonS3Client client;
+
+        if(s3config.getUseInstanceProfileCredentials()) {
+            client = new AmazonS3Client(new InstanceProfileCredentialsProvider(false));
+        } else {
+            client = new AmazonS3Client(getAWSCredentials(s3config));
+        }
+
         return client;
     }
 
