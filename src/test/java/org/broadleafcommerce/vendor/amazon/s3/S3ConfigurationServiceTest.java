@@ -84,4 +84,21 @@ public class S3ConfigurationServiceTest extends AbstractS3Test {
         }
         assertTrue("Expected to get an exception.", !ok);
     }
+
+    @Test
+    public void checkForMissingCredential() {
+        resetAllProperties();
+        propService.setProperty("aws.s3.useInstanceProfile", "false");
+        propService.setProperty("aws.s3.accessKeyId", "");
+        propService.setProperty("aws.s3.secretKey", "");
+
+        boolean ok;
+        try {
+            configService.lookupS3Configuration();
+            ok = true;
+        } catch (IllegalArgumentException iae) {
+            ok = false;
+        }
+        assertTrue("Exepected to get an exception.", !ok);
+    }
 }

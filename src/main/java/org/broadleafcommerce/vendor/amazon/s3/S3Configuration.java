@@ -34,6 +34,7 @@ public class S3Configuration {
     private String defaultBucketRegion;
     private String endpointURI;
     private String bucketSubDirectory;
+    private Boolean useInstanceProfileCredentials;
 
     public String getAwsSecretKey() {
         return awsSecretKey;
@@ -83,6 +84,14 @@ public class S3Configuration {
         this.bucketSubDirectory = bucketSubDirectory;
     }
 
+    public Boolean getUseInstanceProfileCredentials() {
+        return useInstanceProfileCredentials;
+    }
+
+    public void setUseInstanceProfileCredentials(Boolean useInstanceProfileCredentials) {
+        this.useInstanceProfileCredentials = useInstanceProfileCredentials;
+    }
+
     @Override
     public int hashCode() {
         return new HashCodeBuilder()
@@ -92,6 +101,7 @@ public class S3Configuration {
             .append(defaultBucketRegion)
             .append(endpointURI)
             .append(bucketSubDirectory)
+            .append(useInstanceProfileCredentials)
             .build();
     }
 
@@ -106,6 +116,7 @@ public class S3Configuration {
                 .append(this.getAWSAccessKeyId, that.getAWSAccessKeyId)
                 .append(this.endpointURI, that.endpointURI)
                 .append(this.bucketSubDirectory, that.bucketSubDirectory)
+                .append(this.useInstanceProfileCredentials, that.useInstanceProfileCredentials)
                 .build();
         }
         return false;
