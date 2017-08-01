@@ -10,7 +10,7 @@
  * the Broadleaf End User License Agreement (EULA), Version 1.1
  * (the "Commercial License" located at http://license.broadleafcommerce.org/commercial_license-1.1.txt)
  * shall apply.
- * 
+ *
  * Alternatively, the Commercial License may be replaced with a mutually agreed upon license (the "Custom License")
  * between you and Broadleaf Commerce. You may not use this file except in compliance with the applicable license.
  * #L%
@@ -22,7 +22,7 @@ import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 /**
  * Class that holds the configuration for connecting to AmazonS3.
- * 
+ *
  * @author bpolster
  *
  */
@@ -35,6 +35,7 @@ public class S3Configuration {
     private String endpointURI;
     private String bucketSubDirectory;
     private Boolean useInstanceProfileCredentials;
+    private Boolean enableSSE;
 
     public String getAwsSecretKey() {
         return awsSecretKey;
@@ -67,7 +68,7 @@ public class S3Configuration {
     public void setDefaultBucketRegion(String defaultBucketRegion) {
         this.defaultBucketRegion = defaultBucketRegion;
     }
-        
+
     public String getEndpointURI() {
         return endpointURI;
     }
@@ -92,6 +93,14 @@ public class S3Configuration {
         this.useInstanceProfileCredentials = useInstanceProfileCredentials;
     }
 
+    public Boolean getEnableSSE() {
+        return enableSSE;
+    }
+
+    public void setEnableSSE(Boolean enableSSE) {
+        this.enableSSE = enableSSE;
+    }
+
     @Override
     public int hashCode() {
         return new HashCodeBuilder()
@@ -102,6 +111,7 @@ public class S3Configuration {
             .append(endpointURI)
             .append(bucketSubDirectory)
             .append(useInstanceProfileCredentials)
+            .append(enableSSE)
             .build();
     }
 
@@ -117,6 +127,7 @@ public class S3Configuration {
                 .append(this.endpointURI, that.endpointURI)
                 .append(this.bucketSubDirectory, that.bucketSubDirectory)
                 .append(this.useInstanceProfileCredentials, that.useInstanceProfileCredentials)
+                .append(this.enableSSE, that.enableSSE)
                 .build();
         }
         return false;
