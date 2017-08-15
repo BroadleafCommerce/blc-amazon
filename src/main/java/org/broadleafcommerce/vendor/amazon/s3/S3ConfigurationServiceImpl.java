@@ -10,7 +10,7 @@
  * the Broadleaf End User License Agreement (EULA), Version 1.1
  * (the "Commercial License" located at http://license.broadleafcommerce.org/commercial_license-1.1.txt)
  * shall apply.
- * 
+ *
  * Alternatively, the Commercial License may be replaced with a mutually agreed upon license (the "Custom License")
  * between you and Broadleaf Commerce. You may not use this file except in compliance with the applicable license.
  * #L%
@@ -29,7 +29,7 @@ import javax.annotation.Resource;
 /**
  * Service that returns the an S3 configuration object.   Returns a configuration object with values
  * that are defined as system properties.
- * 
+ *
  * @author bpolster
  *
  */
@@ -38,7 +38,7 @@ public class S3ConfigurationServiceImpl implements S3ConfigurationService {
 
     @Resource(name = "blSystemPropertiesService")
     protected SystemPropertiesService systemPropertiesService;
-    
+
     @Override
     public S3Configuration lookupS3Configuration() {
         S3Configuration s3config = new S3Configuration();
@@ -49,6 +49,7 @@ public class S3ConfigurationServiceImpl implements S3ConfigurationService {
         s3config.setEndpointURI(lookupProperty("aws.s3.endpointURI"));
         s3config.setBucketSubDirectory(lookupProperty("aws.s3.bucketSubDirectory"));
         s3config.setUseInstanceProfileCredentials(Boolean.parseBoolean(lookupProperty("aws.s3.useInstanceProfile")));
+        s3config.setEnableSSE(Boolean.parseBoolean(lookupProperty("aws.s3.sse")));
 
         boolean accessSecretKeyBlank = StringUtils.isEmpty(s3config.getAwsSecretKey());
         boolean accessKeyIdBlank = StringUtils.isEmpty(s3config.getGetAWSAccessKeyId());
@@ -56,7 +57,7 @@ public class S3ConfigurationServiceImpl implements S3ConfigurationService {
         boolean useInstanceProfile = s3config.getUseInstanceProfileCredentials();
         Region region = RegionUtils.getRegion(s3config.getDefaultBucketRegion());
         boolean canRetrieveCredentials = !(accessSecretKeyBlank || accessKeyIdBlank) || useInstanceProfile;
-        
+
         if (region == null || !canRetrieveCredentials || bucketNameBlank) {
             StringBuilder errorMessage = new StringBuilder("Amazon S3 Configuration Error : ");
 

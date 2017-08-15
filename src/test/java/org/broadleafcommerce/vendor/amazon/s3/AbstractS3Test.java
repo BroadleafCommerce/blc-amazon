@@ -10,7 +10,7 @@
  * the Broadleaf End User License Agreement (EULA), Version 1.1
  * (the "Commercial License" located at http://license.broadleafcommerce.org/commercial_license-1.1.txt)
  * shall apply.
- * 
+ *
  * Alternatively, the Commercial License may be replaced with a mutually agreed upon license (the "Custom License")
  * between you and Broadleaf Commerce. You may not use this file except in compliance with the applicable license.
  * #L%
@@ -29,8 +29,8 @@ import java.io.InputStream;
 import java.util.Properties;
 
 /**
- * Tests that error messages are returned for misconfigured amazon s3 properties. 
- * 
+ * Tests that error messages are returned for misconfigured amazon s3 properties.
+ *
  * @author bpolster
  */
 public abstract class AbstractS3Test {
@@ -43,7 +43,7 @@ public abstract class AbstractS3Test {
         CacheManager.getInstance().addCacheIfAbsent("blSystemPropertyElements");
         configService.setSystemPropertiesService(propService);
     }
-    
+
     protected void resetAllProperties() {
         propService.setProperty("aws.s3.accessKeyId", findProperty("aws.s3.accessKeyId", "testKeyId"));
         propService.setProperty("aws.s3.secretKey", findProperty("aws.s3.secretKey", "secretKey"));
@@ -52,6 +52,7 @@ public abstract class AbstractS3Test {
         propService.setProperty("aws.s3.endpointURI", findProperty("aws.s3.endpointURI", "https://s3.amazonaws.com"));
         propService.setProperty("aws.s3.bucketSubDirectory", findProperty("aws.s3.bucketSubDirectory", ""));
         propService.setProperty("aws.s3.useInstanceProfile", findProperty("aws.s3.useInstanceProfile", "false"));
+        propService.setProperty("aws.s3.sse", findProperty("aws.s3.sse", "false"));
     }
 
     public static class TestSystemPropertiesService extends SystemPropertiesServiceImpl {
