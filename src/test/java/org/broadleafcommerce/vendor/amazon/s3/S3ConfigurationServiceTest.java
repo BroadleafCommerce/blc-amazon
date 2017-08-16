@@ -32,7 +32,6 @@ public class S3ConfigurationServiceTest extends AbstractS3Test {
     
     @Test
     public void checkForAllPropertiesSet() {
-        resetAllProperties();
         boolean ok;
         try {
             configService.lookupS3Configuration();
@@ -45,7 +44,6 @@ public class S3ConfigurationServiceTest extends AbstractS3Test {
 
     @Test
     public void checkForBadBucketRegion() {
-        resetAllProperties();
         propService.setProperty("aws.s3.defaultBucketRegion", "this-bucket-region-is-not-good");
         boolean ok;
         try {
@@ -59,7 +57,6 @@ public class S3ConfigurationServiceTest extends AbstractS3Test {
 
     @Test
     public void checkForMissingAccessKeyId() {
-        resetAllProperties();
         propService.setProperty("aws.s3.accessKeyId", "");
         boolean ok;
         try {
@@ -73,7 +70,6 @@ public class S3ConfigurationServiceTest extends AbstractS3Test {
 
     @Test
     public void checkForMissingSecretKey() {
-        resetAllProperties();
         propService.setProperty("aws.s3.secretKey", "");
         boolean ok;
         try {
@@ -87,7 +83,6 @@ public class S3ConfigurationServiceTest extends AbstractS3Test {
 
     @Test
     public void checkForMissingCredential() {
-        resetAllProperties();
         propService.setProperty("aws.s3.useInstanceProfile", "false");
         propService.setProperty("aws.s3.accessKeyId", "");
         propService.setProperty("aws.s3.secretKey", "");

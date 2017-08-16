@@ -18,15 +18,16 @@
 
 package org.broadleafcommerce.vendor.amazon.s3;
 
-import net.sf.ehcache.CacheManager;
-
 import org.apache.commons.lang3.StringUtils;
 import org.broadleafcommerce.common.config.service.SystemPropertiesServiceImpl;
+import org.junit.Before;
 import org.junit.BeforeClass;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
+
+import net.sf.ehcache.CacheManager;
 
 /**
  * Tests that error messages are returned for misconfigured amazon s3 properties.
@@ -42,6 +43,11 @@ public abstract class AbstractS3Test {
     public static void setup() {
         CacheManager.getInstance().addCacheIfAbsent("blSystemPropertyElements");
         configService.setSystemPropertiesService(propService);
+    }
+    
+    @Before
+    public void reset() {
+        resetAllProperties();
     }
 
     protected void resetAllProperties() {

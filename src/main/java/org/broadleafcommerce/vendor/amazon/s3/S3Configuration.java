@@ -32,6 +32,11 @@ public class S3Configuration {
     private String getAWSAccessKeyId;
     private String defaultBucketName;
     private String defaultBucketRegion;
+    
+    /**
+     * @deprecated no longer used, the endpoint is automatically determined via {@link #defaultBucketRegion}
+     */
+    @Deprecated
     private String endpointURI;
     private String bucketSubDirectory;
     private Boolean useInstanceProfileCredentials;
@@ -69,10 +74,18 @@ public class S3Configuration {
         this.defaultBucketRegion = defaultBucketRegion;
     }
 
+    /**
+     * @deprecated this method is no longer used as the endpoint is automatically determined by {@link #getDefaultBucketName()}
+     */
+    @Deprecated
     public String getEndpointURI() {
         return endpointURI;
     }
 
+    /**
+     * @deprecated this method is no longer used as the endpoint is automatically determined by {@link #setDefaultBucketName()}
+     */
+    @Deprecated
     public void setEndpointURI(String endpointURI) {
         this.endpointURI = endpointURI;
     }

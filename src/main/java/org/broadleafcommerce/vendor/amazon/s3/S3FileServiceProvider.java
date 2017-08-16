@@ -17,8 +17,6 @@
  */
 package org.broadleafcommerce.vendor.amazon.s3;
 
-import com.amazonaws.auth.InstanceProfileCredentialsProvider;
-import com.amazonaws.services.s3.model.*;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.broadleafcommerce.common.file.FileServiceException;
@@ -32,8 +30,15 @@ import org.springframework.stereotype.Service;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.regions.RegionUtils;
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import com.amazonaws.auth.InstanceProfileCredentialsProvider;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3ClientBuilder;
+import com.amazonaws.services.s3.model.AmazonS3Exception;
+import com.amazonaws.services.s3.model.GetObjectRequest;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.amazonaws.services.s3.model.S3Object;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -68,7 +73,7 @@ public class S3FileServiceProvider implements FileServiceProvider {
     @Resource(name = "blFileService")
     protected BroadleafFileService blFileService;
 
-    protected Map<S3Configuration, AmazonS3Client> configClientMap = new HashMap<S3Configuration, AmazonS3Client>();
+    protected Map<S3Configuration, AmazonS3> configClientMap = new HashMap<>();
 
     @Override
     public File getResource(String name) {
@@ -83,7 +88,7 @@ public class S3FileServiceProvider implements FileServiceProvider {
 
         try {
             S3Configuration s3config = s3ConfigurationService.lookupS3Configuration();
-            AmazonS3Client s3 = getAmazonS3Client(s3config);
+            AmazonS3 s3 = getAmazonS3Client(s3config);
             S3Object object = s3.getObject(new GetObjectRequest(s3config.getDefaultBucketName(), buildResourceName(name)));
 
             inputStream = object.getObjectContent();
@@ -143,7 +148,7 @@ public class S3FileServiceProvider implements FileServiceProvider {
     @Override
     public List<String> addOrUpdateResourcesForPaths(FileWorkArea workArea, List<File> files, boolean removeFilesFromWorkArea) {
         S3Configuration s3config = s3ConfigurationService.lookupS3Configuration();
-        AmazonS3Client s3 = getAmazonS3Client(s3config);
+        AmazonS3 s3 = getAmazonS3Client(s3config);
 
         try {
             return addOrUpdateResourcesInternal(s3config, s3, workArea, files, removeFilesFromWorkArea);
@@ -157,8 +162,8 @@ public class S3FileServiceProvider implements FileServiceProvider {
         }
     }
 
-    protected List<String> addOrUpdateResourcesInternal(S3Configuration s3config, AmazonS3Client s3, FileWorkArea workArea, List<File> files, boolean removeFilesFromWorkArea) {
-        List<String> resourcePaths = new ArrayList<String>();
+    protected List<String> addOrUpdateResourcesInternal(S3Configuration s3config, AmazonS3 s3, FileWorkArea workArea, List<File> files, boolean removeFilesFromWorkArea) {
+        List<String> resourcePaths = new ArrayList<>();
         for (File srcFile : files) {
             if (!srcFile.getAbsolutePath().startsWith(workArea.getFilePathLocation())) {
                 throw new FileServiceException("Attempt to update file " + srcFile.getAbsolutePath() +
@@ -186,7 +191,7 @@ public class S3FileServiceProvider implements FileServiceProvider {
     @Override
     public boolean removeResource(String name) {
         S3Configuration s3config = s3ConfigurationService.lookupS3Configuration();
-        AmazonS3Client s3 = getAmazonS3Client(s3config);
+        AmazonS3 s3 = getAmazonS3Client(s3config);
         s3.deleteObject(s3config.getDefaultBucketName(), buildResourceName(name));
 
         File returnFile = blFileService.getLocalResource(buildResourceName(name));
@@ -243,14 +248,10 @@ public class S3FileServiceProvider implements FileServiceProvider {
         return siteDirectory;
     }
 
-    protected AmazonS3Client getAmazonS3Client(S3Configuration s3config) {
-        AmazonS3Client client = configClientMap.get(s3config);
+    protected AmazonS3 getAmazonS3Client(S3Configuration s3config) {
+        AmazonS3 client = configClientMap.get(s3config);
         if (client == null) {
             client = getAmazonS3ClientFromConfiguration(s3config);
-            client.setRegion(RegionUtils.getRegion(s3config.getDefaultBucketRegion()));
-            if (s3config.getEndpointURI() != null) {
-                client.setEndpoint(s3config.getEndpointURI());
-            }
             configClientMap.put(s3config, client);
         }
         return client;
@@ -263,16 +264,20 @@ public class S3FileServiceProvider implements FileServiceProvider {
      * @param s3config Configuration object
      * @return an authenticated AmazonS3Client
      */
-    protected AmazonS3Client getAmazonS3ClientFromConfiguration(S3Configuration s3config) {
-        final AmazonS3Client client;
-
+    protected AmazonS3 getAmazonS3ClientFromConfiguration(S3Configuration s3config) {
+        AmazonS3ClientBuilder builder;
+        
         if(s3config.getUseInstanceProfileCredentials()) {
-            client = new AmazonS3Client(new InstanceProfileCredentialsProvider(false));
+            builder = AmazonS3ClientBuilder.standard()
+                .withCredentials(new InstanceProfileCredentialsProvider(false));
         } else {
-            client = new AmazonS3Client(getAWSCredentials(s3config));
+            builder = AmazonS3ClientBuilder.standard()
+                .withCredentials(new AWSStaticCredentialsProvider(getAWSCredentials(s3config)));
         }
+        
+        builder.setRegion(s3config.getDefaultBucketRegion());
 
-        return client;
+        return builder.build();
     }
 
 
