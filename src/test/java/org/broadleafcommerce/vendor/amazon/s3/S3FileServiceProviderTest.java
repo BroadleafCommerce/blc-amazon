@@ -33,8 +33,7 @@ import org.broadleafcommerce.common.web.BroadleafRequestContext;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.amazonaws.regions.RegionUtils;
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
 
@@ -101,7 +100,6 @@ public class S3FileServiceProviderTest extends AbstractS3Test {
 
     @Test
     public void testSubDirectory() throws IOException {
-        resetAllProperties();
         String filename = "blcTestFile.txt";
         String subDirectory = "img";
         verifyFileUploadRaw(filename, subDirectory);
@@ -109,7 +107,6 @@ public class S3FileServiceProviderTest extends AbstractS3Test {
   
     @Test
     public void testSubDirectoryWithSlashes() throws IOException {
-        resetAllProperties();
         String filename = "/blcTestFile.txt";
         String subDirectory = "/img/";
         verifyFileUploadRaw(filename, subDirectory);
@@ -136,7 +133,6 @@ public class S3FileServiceProviderTest extends AbstractS3Test {
     
     @Test
     public void testRemoveAddedResourceByName() {
-        resetAllProperties();
         String fileName = "blcTestFile.txt";
         propService.setProperty("aws.s3.bucketSubDirectory", "/img/");
         List<String> resourceNames = uploadTestFileWithResult(fileName);
@@ -148,14 +144,12 @@ public class S3FileServiceProviderTest extends AbstractS3Test {
     
     @Test
     public void testNotFoundReturnsNonExistentFile() {
-        resetAllProperties();
         File file = s3FileProvider.getResource("blahblahgarbledygoopcannotfind.ext");
         assertTrue("The returned file should not exist", !file.exists());
     }
     
     @Test
     public void testSubDirectoryTree() throws IOException {
-        resetAllProperties();
         String filename = "/blcTestFile.txt";
         String subDirectory = "/img/sub1/sub2";
         verifyFileUploadRaw(filename, subDirectory);
@@ -178,8 +172,7 @@ public class S3FileServiceProviderTest extends AbstractS3Test {
         
         // Use the S3 client directly to ensure that it was uploaded to the sub-directory
         S3Configuration s3config = configService.lookupS3Configuration();
-        AmazonS3Client s3 = s3FileProvider.getAmazonS3Client(s3config);
-        s3.setRegion(RegionUtils.getRegion(s3config.getDefaultBucketRegion()));
+        AmazonS3 s3 = s3FileProvider.getAmazonS3Client(s3config);
         String s3Key = s3FileProvider.getSiteSpecificResourceName(filename);
         if (StringUtils.isNotEmpty(directoryName)) {
             s3Key = directoryName + "/" + s3Key;
@@ -252,7 +245,7 @@ public class S3FileServiceProviderTest extends AbstractS3Test {
     protected List<String> uploadTestFileWithResult(String filename) {
         try {
             // Add the file to the amazon bucket.
-            List<File> files = new ArrayList<File>();
+            List<File> files = new ArrayList<>();
             File sampleFile = createSampleFile(filename);
             FileWorkArea workArea = new FileWorkArea();
             File parentFile = sampleFile.getAbsoluteFile().getParentFile();
@@ -260,7 +253,7 @@ public class S3FileServiceProviderTest extends AbstractS3Test {
             files.add(sampleFile);
             return s3FileProvider.addOrUpdateResourcesForPaths(workArea, files, false);
         } catch (IOException e) {
-            return new ArrayList<String>();
+            return new ArrayList<>();
         }
     }
     
