@@ -3,22 +3,13 @@ The Broadleaf Amazon module requires [configuration](#configuration-changes) and
 
 ## Broadleaf Dependency
 
-Version 1.1.0-GA requires Broadleaf 4.0 or later.
+- Version 2.1.x-GA requires Broadleaf 5.2 or later.
+- Version 2.0.x-GA requires Broadleaf 5.0 or 5.1
+- Version 1.1.x-GA requires Broadleaf 4.0 or 4.1
+- Version 1.0.x-GA requires Broadleaf 3.1
 
 ## Configuration Changes
-**Step 1.**  Add the dependency management section to your **parent** `pom.xml`:
-
-```xml
-<dependency>
-    <groupId>org.broadleafcommerce</groupId>
-    <artifactId>broadleaf-amazon</artifactId>
-    <version>2.1.0-GA</version>
-    <type>jar</type>
-    <scope>compile</scope>
-</dependency>
-```
-
-**Step 2.**  Add the dependency into your `core/pom.xml`:
+**Step 1.**  Add the dependency into your `core/pom.xml`:
 
 ```xml
 <dependency>
@@ -31,7 +22,7 @@ Version 1.1.0-GA requires Broadleaf 4.0 or later.
 This module requires you to configure properties specific to your amazon account.
 
 ### Amazon Credentials
-Broadleaf requires access to your Amazon AWS account.   See [About Amazon Credentials](http://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html) for more information.
+Broadleaf requires access to your Amazon AWS account. See [About Amazon Credentials](http://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html) for more information.
 
 **AccessKeyId / SecretKey**
 One approach for setting up credentials is to use an accessKeyId and secretKey.  When you create the access keys on amazon you will need to copy the values and add the following properties to your `common-shared.properties` file located in your core project.
@@ -63,10 +54,6 @@ _If you would like to store files inside of a folder within the bucket (like 'im
 _The Amazon module will default to the "us-west-2" region of S3. You can override the region by setting the following property._
 
     aws.s3.defaultBucketRegion=us-west-2
-
-_The Amazon module will default to utilize the default US endpoint "https://s3.amazonaws.com". You can override the endpoint with the following property:_
-
-    aws.s3.endpointURI=https://s3.amazonaws.com
 
 _If your uploads require Server-Side Encryption, enable with this property. The default value is "false"._
 
