@@ -1,2 +1,4 @@
 - [[Home | .]]
 - [[Module Installation]]
+- [[Release Notes]]
+- [[Migration Docs]]
