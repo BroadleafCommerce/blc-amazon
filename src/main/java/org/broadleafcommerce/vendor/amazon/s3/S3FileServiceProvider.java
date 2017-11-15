@@ -262,4 +262,7 @@ public class S3FileServiceProvider implements FileServiceProvider {
         this.blFileService = bfs;
     }
 
+    public void setConcurrentFileOutputStream(ConcurrentFileOutputStream concurrentFileOutputStream) {
+        this.concurrentFileOutputStream = concurrentFileOutputStream;
+    }
 }
