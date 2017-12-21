@@ -89,7 +89,12 @@ public class S3FileServiceProvider implements FileServiceProvider {
         try {
             S3Configuration s3config = s3ConfigurationService.lookupS3Configuration();
             AmazonS3 s3 = getAmazonS3Client(s3config);
-            S3Object object = s3.getObject(new GetObjectRequest(s3config.getDefaultBucketName(), buildResourceName(name)));
+
+            String bucketName = identifyBucket(name, s3config.getDefaultBucketName());
+            if(!bucketName.equals(s3config.getDefaultBucketName())){
+                name = name.substring(("bucket://"+bucketName).length()+1);
+            }
+            S3Object object = s3.getObject(new GetObjectRequest(bucketName, buildResourceName(name)));
 
             inputStream = object.getObjectContent();
 
@@ -134,6 +139,13 @@ public class S3FileServiceProvider implements FileServiceProvider {
             }
         }
         return returnFile;
+    }
+
+    private String identifyBucket(String name, String defaultBucketName) {
+        if(name!=null && name.startsWith("bucket://")){
+            return name.substring("bucket://".length(), name.indexOf("/", "bucket://".length()));
+        }
+        return defaultBucketName;
     }
 
     @Override
