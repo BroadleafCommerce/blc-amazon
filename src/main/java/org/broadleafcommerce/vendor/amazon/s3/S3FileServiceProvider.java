@@ -24,6 +24,7 @@ import org.broadleafcommerce.common.file.domain.FileWorkArea;
 import org.broadleafcommerce.common.file.service.BroadleafFileService;
 import org.broadleafcommerce.common.file.service.FileServiceProvider;
 import org.broadleafcommerce.common.file.service.type.FileApplicationType;
+import org.broadleafcommerce.common.io.ConcurrentFileOutputStream;
 import org.broadleafcommerce.common.site.domain.Site;
 import org.broadleafcommerce.common.web.BroadleafRequestContext;
 import org.springframework.stereotype.Service;
@@ -41,10 +42,8 @@ import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -75,6 +74,9 @@ public class S3FileServiceProvider implements FileServiceProvider {
 
     protected Map<S3Configuration, AmazonS3> configClientMap = new HashMap<>();
 
+    @Resource(name = "blConcurrentFileOutputStream")
+    protected ConcurrentFileOutputStream concurrentFileOutputStream;
+
     @Override
     public File getResource(String name) {
         return getResource(name, FileApplicationType.ALL);
@@ -83,7 +85,6 @@ public class S3FileServiceProvider implements FileServiceProvider {
     @Override
     public File getResource(String name, FileApplicationType fileApplicationType) {
         File returnFile = blFileService.getLocalResource(buildResourceName(name));
-        OutputStream outputStream = null;
         InputStream inputStream = null;
 
         try {
@@ -106,13 +107,9 @@ public class S3FileServiceProvider implements FileServiceProvider {
                     }
                 }
             }
-            outputStream = new FileOutputStream(returnFile);
-            int read = 0;
-            byte[] bytes = new byte[1024];
 
-            while ((read = inputStream.read(bytes)) != -1) {
-                outputStream.write(bytes, 0, read);
-            }
+            concurrentFileOutputStream.write(inputStream, returnFile);
+
         } catch (IOException ioe) {
             throw new RuntimeException("Error writing s3 file to local file system", ioe);
         } catch (AmazonS3Exception s3Exception) {
@@ -128,14 +125,6 @@ public class S3FileServiceProvider implements FileServiceProvider {
                 } catch (IOException e) {
                     throw new RuntimeException("Error closing input stream while writing s3 file to file system", e);
                 }
-            }
-            if (outputStream != null) {
-                try {
-                    outputStream.close();
-                } catch (IOException e) {
-                    throw new RuntimeException("Error closing output stream while writing s3 file to file system", e);
-                }
-
             }
         }
         return returnFile;
@@ -314,4 +303,7 @@ public class S3FileServiceProvider implements FileServiceProvider {
         this.blFileService = bfs;
     }
 
+    public void setConcurrentFileOutputStream(ConcurrentFileOutputStream concurrentFileOutputStream) {
+        this.concurrentFileOutputStream = concurrentFileOutputStream;
+    }
 }
