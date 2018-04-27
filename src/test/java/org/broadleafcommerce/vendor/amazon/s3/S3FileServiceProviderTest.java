@@ -28,6 +28,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.broadleafcommerce.common.file.domain.FileWorkArea;
 import org.broadleafcommerce.common.file.service.BroadleafFileServiceExtensionManager;
 import org.broadleafcommerce.common.file.service.BroadleafFileServiceImpl;
+import org.broadleafcommerce.common.io.ConcurrentFileOutputStreamImpl;
 import org.broadleafcommerce.common.site.domain.SiteImpl;
 import org.broadleafcommerce.common.web.BroadleafRequestContext;
 import org.junit.BeforeClass;
@@ -74,11 +75,19 @@ public class S3FileServiceProviderTest extends AbstractS3Test {
             extensionManager = new BroadleafFileServiceExtensionManager();
         }
     }
-    
+
+    public class MockConcurrentFileOutputStream extends ConcurrentFileOutputStreamImpl {
+        public MockConcurrentFileOutputStream() {
+            defaultFileBufferSize = 8192;
+        }
+    }
+
     @BeforeClass
     public static void setupProvider() {
         s3FileProvider.s3ConfigurationService = configService;
-        s3FileProvider.setBroadleafFileService(new S3FileServiceProviderTest().new S3BroadleafFileService());
+        S3FileServiceProviderTest testFileServiceProvider = new S3FileServiceProviderTest();
+        s3FileProvider.setBroadleafFileService(testFileServiceProvider.new S3BroadleafFileService());
+        s3FileProvider.setConcurrentFileOutputStream(testFileServiceProvider.new MockConcurrentFileOutputStream());
     }
 
     @Test
