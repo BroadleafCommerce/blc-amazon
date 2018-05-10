@@ -20,7 +20,7 @@
     <version>2.1.2-SNAPSHOT</version>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <blc.version>5.2.4-SNAPSHOT</blc.version>
+        <blc.version>5.2.4-GA</blc.version>
         <project.uri>${user.dir}</project.uri>
     </properties>
     <scm>
