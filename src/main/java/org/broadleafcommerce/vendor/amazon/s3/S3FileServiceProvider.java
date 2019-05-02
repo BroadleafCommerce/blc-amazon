@@ -28,6 +28,8 @@ import org.broadleafcommerce.common.io.ConcurrentFileOutputStream;
 import org.broadleafcommerce.common.site.domain.Site;
 import org.broadleafcommerce.common.web.BroadleafRequestContext;
 import org.springframework.stereotype.Service;
+import org.springframework.util.ClassUtils;
+import org.springframework.util.ReflectionUtils;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.auth.AWSCredentials;
@@ -44,6 +46,8 @@ import com.amazonaws.services.s3.model.S3Object;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -62,10 +66,12 @@ import javax.annotation.Resource;
  *
  * @author bpolster
  * @author Mike Garrett
+ * @author Ezequiel Gorbatik
  *
  */
 public class S3FileServiceProvider implements FileServiceProvider {
 
+	
     @Resource(name = "blS3ConfigurationService")
     protected S3ConfigurationService s3ConfigurationService;
 
@@ -77,37 +83,72 @@ public class S3FileServiceProvider implements FileServiceProvider {
     @Resource(name = "blConcurrentFileOutputStream")
     protected ConcurrentFileOutputStream concurrentFileOutputStream;
 
+    private static final String BUCKET_PREFIX="bucket://";
+    
+    private static final String SITE_PREFIX="site-";
+    
+    private static final String MULTITENANT_SITE_CLASSNAME= "com.broadleafcommerce.tenant.domain.MultiTenantSite";
+    
+    private static final String MULTITENANTSITE_GETPARENTID_METHODNAME= "getParentSiteId";
+    
     @Override
     public File getResource(String name) {
         return getResource(name, FileApplicationType.ALL);
     }
 
-    @Override
-    public File getResource(String name, FileApplicationType fileApplicationType) {
-        File returnFile = blFileService.getLocalResource(buildResourceName(name));
+        
+    private String getBucketName(String name, String defaultBucketName) {
+        if(name!=null && name.startsWith(BUCKET_PREFIX)){
+            return name.substring(BUCKET_PREFIX.length(), name.indexOf("/", BUCKET_PREFIX.length()));
+        }
+        return defaultBucketName;
+    }
+    
+    private String getResourceName(S3Configuration s3config, String bucketName, String rawName) {
+    	String name= rawName;
+    	if(!bucketName.equals(s3config.getDefaultBucketName())){
+            name = name.substring((BUCKET_PREFIX+bucketName).length()+1);
+        }
+    	return name;
+    }
+
+    /**
+     * Ensures the file creation
+     * @param returnFile
+     * @param name
+     * @throws RuntimeException
+     */
+    private void ensureFileCreation(File returnFile,String name) throws RuntimeException
+    {
+    	 if (!returnFile.getParentFile().exists()) {
+             if (!returnFile.getParentFile().mkdirs()) {
+                 // Other thread could have created - check one more time.
+                 if (!returnFile.getParentFile().exists()) {
+                     throw new RuntimeException("Unable to create parent directories for file: " + name);
+                 }
+             }
+         }
+
+    }
+    
+    public File getResourceFromParent(String rawName, FileApplicationType fileApplicationType) {
+        String resourceName=buildResourceParentName(rawName);
+    	File returnFile = blFileService.getLocalResource(resourceName);
         InputStream inputStream = null;
+        String name;
 
         try {
             S3Configuration s3config = s3ConfigurationService.lookupS3Configuration();
             AmazonS3 s3 = getAmazonS3Client(s3config);
 
-            String bucketName = identifyBucket(name, s3config.getDefaultBucketName());
-            if(!bucketName.equals(s3config.getDefaultBucketName())){
-                name = name.substring(("bucket://"+bucketName).length()+1);
-            }
-            S3Object object = s3.getObject(new GetObjectRequest(bucketName, buildResourceName(name)));
-
+            String bucketName = getBucketName(rawName, s3config.getDefaultBucketName());
+            name = getResourceName(s3config,bucketName, rawName);
+            
+            S3Object object = s3.getObject(new GetObjectRequest(bucketName, buildResourceParentName(name)));
             inputStream = object.getObjectContent();
 
-            if (!returnFile.getParentFile().exists()) {
-                if (!returnFile.getParentFile().mkdirs()) {
-                    // Other thread could have created - check one more time.
-                    if (!returnFile.getParentFile().exists()) {
-                        throw new RuntimeException("Unable to create parent directories for file: " + name);
-                    }
-                }
-            }
-
+            ensureFileCreation(returnFile, rawName);
+           
             concurrentFileOutputStream.write(inputStream, returnFile);
 
         } catch (IOException ioe) {
@@ -130,13 +171,48 @@ public class S3FileServiceProvider implements FileServiceProvider {
         return returnFile;
     }
 
-    private String identifyBucket(String name, String defaultBucketName) {
-        if(name!=null && name.startsWith("bucket://")){
-            return name.substring("bucket://".length(), name.indexOf("/", "bucket://".length()));
-        }
-        return defaultBucketName;
+    
+    public File getResourceDefault(String rawName, FileApplicationType fileApplicationType) { 
+        String resourceName=buildResourceName(rawName);
+       	File returnFile = blFileService.getLocalResource(resourceName);
+           InputStream inputStream = null;
+           String name;
+
+           try {
+               S3Configuration s3config = s3ConfigurationService.lookupS3Configuration();
+               AmazonS3 s3 = getAmazonS3Client(s3config);
+
+               String bucketName = getBucketName(rawName, s3config.getDefaultBucketName());
+               name = getResourceName(s3config,bucketName, rawName);
+               
+               S3Object object = s3.getObject(new GetObjectRequest(bucketName, buildResourceName(name)));
+               inputStream = object.getObjectContent();
+
+               ensureFileCreation(returnFile, rawName);
+              
+               concurrentFileOutputStream.write(inputStream, returnFile);
+
+           } catch (IOException ioe) {
+               throw new RuntimeException("Error writing s3 file to local file system", ioe);
+           } catch (AmazonS3Exception s3Exception) {
+               if ("NoSuchKey".equals(s3Exception.getErrorCode())) {
+                   return new File("this/path/should/not/exist/" + UUID.randomUUID());
+               } else {
+                   throw s3Exception;
+               }
+           } finally {
+               if (inputStream != null) {
+                   try {
+                       inputStream.close();
+                   } catch (IOException e) {
+                       throw new RuntimeException("Error closing input stream while writing s3 file to file system", e);
+                   }
+               }
+           }
+           return returnFile;
     }
 
+ 
     @Override
     public void addOrUpdateResources(FileWorkArea workArea, List<File> files, boolean removeFilesFromWorkArea) {
         addOrUpdateResourcesForPaths(workArea, files, removeFilesFromWorkArea);
@@ -245,7 +321,11 @@ public class S3FileServiceProvider implements FileServiceProvider {
     }
 
     protected String getSiteDirectory(Site site) {
-        String siteDirectory = "site-" + site.getId();
+    	return getSiteDirectory(site.getId());
+    }
+    
+    protected String getSiteDirectory(Long id) {
+        String siteDirectory = SITE_PREFIX + id.toString();
         return siteDirectory;
     }
 
@@ -306,4 +386,113 @@ public class S3FileServiceProvider implements FileServiceProvider {
     public void setConcurrentFileOutputStream(ConcurrentFileOutputStream concurrentFileOutputStream) {
         this.concurrentFileOutputStream = concurrentFileOutputStream;
     }
+    
+    @Override
+	public File getResource(String name, FileApplicationType fileApplicationType) {
+		File file = getResourceDefault(name, fileApplicationType);
+		if (file.getPath().contains("this/path/should/not/exist/")  && isMultiTenantEnvironment()) {
+			file = getResourceFromParent(name, fileApplicationType);
+		}
+		return file;
+	}
+    
+    /**
+     * Builds the resourceName for it's parent.
+     * @param name
+     * @return
+     */
+    protected String buildResourceParentName(String name) {
+		name= StringUtils.removeStart(name, "/");
+    
+		String baseDirectory = s3ConfigurationService.lookupS3Configuration().getBucketSubDirectory();
+		if (StringUtils.isNotEmpty(baseDirectory)) {
+			baseDirectory= StringUtils.removeStart(baseDirectory, "/");
+		} else {
+			// ensure subDirectory is non-null
+			baseDirectory = "";
+		}
+
+		String siteSpecificResourceName = getMultiTenantSiteSpecificResourceNameParent(name);
+		return FilenameUtils.concat(baseDirectory, siteSpecificResourceName);
+	}
+    
+    
+    /**
+     * Check if the module is call with MultiTenant module
+     * @return
+     */
+    private boolean isMultiTenantEnvironment() {
+    	return ClassUtils.isPresent(MULTITENANT_SITE_CLASSNAME ,getClass().getClassLoader());
+	 }
+    
+	/**
+	 * Get MultiTenantSite Class by Reflection 
+	 * @return
+	 */
+    private Class<?> getMultiTenantClass() {
+		try {
+			Class<?> c = ClassUtils.forName(MULTITENANT_SITE_CLASSNAME, getClass().getClassLoader());
+			return c;
+		} catch (ClassNotFoundException | LinkageError e) {
+			// Means no MultiTenantEnvironment
+		
+		}
+  	    return null;
+  	  }
+
+	
+/**
+ * Gets getParentId method by reflection   
+ * @return
+ */
+	private Method getMultiTenantGetParentSiteIdMethod() {
+		try {
+			return getMultiTenantClass().getMethod(MULTITENANTSITE_GETPARENTID_METHODNAME);
+		} catch (NoSuchMethodException | SecurityException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return null;
+	}
+
+
+	/**
+	 * Reflection getParentSiteId Invocation 
+	 * @param site
+	 * @return
+	 */
+	private Long invokeMultiTenantGetParentSiteIdMethod(Object site) {
+		try {
+			Long result =Long.parseLong(
+					ReflectionUtils.invokeMethod(getMultiTenantGetParentSiteIdMethod(), site).toString());
+			return result;
+		} catch ( SecurityException | IllegalArgumentException e) {
+			// TODO Auto-generated catch block
+			
+		}
+		return 0L;
+	}
+
+	
+	/**
+	 * Get the parent from a MultiTentantSite.
+	 * The MultiTenantSite environment is detected by reflection.
+	 * @param resourceName
+	 * @return
+	 */
+    protected String getMultiTenantSiteSpecificResourceNameParent(String resourceName) {
+		BroadleafRequestContext brc = BroadleafRequestContext.getBroadleafRequestContext();
+		if (brc != null) {
+			//getMultiTenantClass retrieves the class by reflection, the casts.
+		    Object site = (getMultiTenantClass().cast(brc.getNonPersistentSite()));
+			if (site != null) {
+				//The MultiTenantSite.getParentSiteId method is called by reflection.
+				String siteDirectory = getSiteDirectory((invokeMultiTenantGetParentSiteIdMethod(site)));
+				resourceName= StringUtils.removeStart(resourceName, "/");
+			    return FilenameUtils.concat(siteDirectory, resourceName);
+			}
+		}
+		return resourceName;
+	}
+
 }
