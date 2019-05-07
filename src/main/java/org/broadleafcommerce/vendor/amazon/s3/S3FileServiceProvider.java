@@ -85,13 +85,13 @@ public class S3FileServiceProvider implements FileServiceProvider {
     @Resource(name = "blConcurrentFileOutputStream")
     protected ConcurrentFileOutputStream concurrentFileOutputStream;
 
-    protected static final String BUCKET_PREFIX="bucket://";
+    protected static String BUCKET_PREFIX="bucket://";
 
-    protected static final String SITE_PREFIX="site-";
+    protected static String SITE_PREFIX="site-";
 
-    protected static final String MULTITENANT_SITE_CLASSNAME= "com.broadleafcommerce.tenant.domain.MultiTenantSite";
+    protected static String MULTITENANT_SITE_CLASSNAME= "com.broadleafcommerce.tenant.domain.MultiTenantSite";
 
-    protected static final String MULTITENANTSITE_GETPARENTID_METHODNAME= "getParentSiteId";
+    protected static String MULTITENANTSITE_GETPARENTID_METHODNAME= "getParentSiteId";
 
     /**
      * Entry point to retrieve resources from this module.
@@ -157,6 +157,7 @@ public class S3FileServiceProvider implements FileServiceProvider {
      */
     public File getResource(String rawName, FileApplicationType fileApplicationType, boolean isParent) {
         String resourceName=(isParent?buildResourceParentName(rawName):buildResourceName(rawName));
+        LOG.debug("Local Resource name: "+ resourceName);
         File returnFile = blFileService.getLocalResource(resourceName);
         InputStream inputStream = null;
         String name;
@@ -168,6 +169,8 @@ public class S3FileServiceProvider implements FileServiceProvider {
             String bucketName = getBucketName(rawName, s3config.getDefaultBucketName());
             name = getResourceName(s3config,bucketName, rawName);
             String resourceNameS3=(isParent?buildResourceParentName(name):buildResourceName(name)); 
+            LOG.debug("Resource name in S3: "+ resourceName);
+            
             S3Object object = s3.getObject(new GetObjectRequest(bucketName, resourceNameS3));
             inputStream = object.getObjectContent();
 
@@ -482,7 +485,6 @@ public class S3FileServiceProvider implements FileServiceProvider {
             if (site != null) {
                 //The MultiTenantSite.getParentSiteId method is called by reflection.
                 String siteDirectory = getSiteDirectory((invokeMultiTenantGetParentSiteIdMethod(site)));
-                resourceName= StringUtils.removeStart(resourceName, "/");
                 return FilenameUtils.concat(siteDirectory, resourceName);
             }
         }
