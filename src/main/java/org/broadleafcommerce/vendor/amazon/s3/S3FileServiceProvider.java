@@ -168,15 +168,18 @@ public class S3FileServiceProvider implements FileServiceProvider {
 
             String bucketName = getBucketName(rawName, s3config.getDefaultBucketName());
             name = getResourceName(s3config,bucketName, rawName);
+            boolean skip=false;
             String resourceNameS3=(isParent?buildResourceParentName(name):buildResourceName(name)); 
             LOG.debug("Resource name in S3: "+ resourceName);
-            
-            S3Object object = s3.getObject(new GetObjectRequest(bucketName, resourceNameS3));
-            inputStream = object.getObjectContent();
+            //No parent present
+            if ((!isParent) || (!resourceName.contains(SITE_PREFIX+"0/"))) {
+                S3Object object = s3.getObject(new GetObjectRequest(bucketName, resourceNameS3));
+                inputStream = object.getObjectContent();
 
-            ensureFileCreation(returnFile, rawName);
+                ensureFileCreation(returnFile, rawName);
 
-            concurrentFileOutputStream.write(inputStream, returnFile);
+                concurrentFileOutputStream.write(inputStream, returnFile);
+            }
 
         } catch (IOException ioe) {
             throw new RuntimeException("Error writing s3 file to local file system", ioe);
@@ -483,8 +486,7 @@ public class S3FileServiceProvider implements FileServiceProvider {
                 //this exception should never occur if the MultiTenant environment is ok
                LOG.error("Problem reflecting Multitenant Class", e);
             }
-            //The MultiTenantSite.getParentSiteId method is called by reflection.
-        }
+          }
         return resourceName;
     }
 
