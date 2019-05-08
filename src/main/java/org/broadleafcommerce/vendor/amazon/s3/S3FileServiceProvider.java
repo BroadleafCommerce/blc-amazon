@@ -453,9 +453,12 @@ public class S3FileServiceProvider implements FileServiceProvider {
      * @return
      */
     protected Long invokeMultiTenantGetParentSiteIdMethod(Object site) {
+        Long result = 0L;
         try {
-            Long result =Long.parseLong(
-                    ReflectionUtils.invokeMethod(getMultiTenantGetParentSiteIdMethod(), site).toString());
+            String parentSiteId =ReflectionUtils.invokeMethod(getMultiTenantGetParentSiteIdMethod(), site).toString();
+            if (parentSiteId!=null) {
+                result =Long.parseLong(parentSiteId);
+            }        
             return result;
         } catch ( SecurityException | IllegalArgumentException | NoSuchMethodException | ClassNotFoundException | LinkageError e) {
             LOG.error("Problem invoking getParentSiteId method from reflected Multitenant class", e);
