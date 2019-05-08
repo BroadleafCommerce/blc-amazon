@@ -482,11 +482,10 @@ public class S3FileServiceProvider implements FileServiceProvider {
                 //this exception should never occur if the MultiTenant environment is ok
                LOG.error("Problem reflecting Multitenant Class", e);
             }
-            if (site != null) {
-                //The MultiTenantSite.getParentSiteId method is called by reflection.
-                String siteDirectory = getSiteDirectory((invokeMultiTenantGetParentSiteIdMethod(site)));
-                return FilenameUtils.concat(siteDirectory, resourceName);
-            }
+            //The MultiTenantSite.getParentSiteId method is called by reflection.
+            String siteDirectory = getSiteDirectory((invokeMultiTenantGetParentSiteIdMethod(site)));
+            return FilenameUtils.concat(siteDirectory, resourceName);
+            
         }
         return resourceName;
     }
