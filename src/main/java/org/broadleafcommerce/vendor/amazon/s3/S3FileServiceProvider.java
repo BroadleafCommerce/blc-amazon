@@ -471,21 +471,19 @@ public class S3FileServiceProvider implements FileServiceProvider {
      */
     protected String getMultiTenantSiteSpecificResourceNameParent(String resourceName) {
         BroadleafRequestContext brc = BroadleafRequestContext.getBroadleafRequestContext();
-        
         if (brc != null) {
             //getMultiTenantClass retrieves the class by reflection, the casts.
             Object site="";
             try {
                 site = (getMultiTenantClass().cast(brc.getNonPersistentSite()));
+                String siteDirectory = getSiteDirectory((invokeMultiTenantGetParentSiteIdMethod(site)));
+                return FilenameUtils.concat(siteDirectory, resourceName);
             } catch (ClassNotFoundException | LinkageError e) {
                 //The MultitenantEnvironment should be checked before reaching this point so
                 //this exception should never occur if the MultiTenant environment is ok
                LOG.error("Problem reflecting Multitenant Class", e);
             }
             //The MultiTenantSite.getParentSiteId method is called by reflection.
-            String siteDirectory = getSiteDirectory((invokeMultiTenantGetParentSiteIdMethod(site)));
-            return FilenameUtils.concat(siteDirectory, resourceName);
-            
         }
         return resourceName;
     }
