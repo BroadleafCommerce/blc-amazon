@@ -168,7 +168,7 @@ public class S3FileServiceProvider implements FileServiceProvider {
 
             String bucketName = getBucketName(rawName, s3config.getDefaultBucketName());
             name = getResourceName(s3config,bucketName, rawName);
-            boolean skip=false;
+            
             String resourceNameS3=(isParent?buildResourceParentName(name):buildResourceName(name)); 
             LOG.debug("Resource name in S3: "+ resourceName);
             //No parent present
