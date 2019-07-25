@@ -17,7 +17,7 @@
     <artifactId>broadleaf-amazon</artifactId>
     <name>BroadleafCommerce Amazon Integrations</name>
     <description>BroadleafCommerce Amazon Integrations</description>
-    <version>2.1.3-GA</version>
+    <version>2.1.4-SNAPSHOT</version>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <blc.version>5.2.4-GA</blc.version>
@@ -27,7 +27,7 @@
         <connection>scm:git:git@github.com:BroadleafCommerce/blc-amazon.git</connection>
         <developerConnection>scm:git:git@github.com:BroadleafCommerce/blc-amazon.git</developerConnection>
         <url>https://github.com/BroadleafCommerce/blc-amazon</url>
-      <tag>broadleaf-amazon-2.1.3-GA</tag>
+      <tag>HEAD</tag>
     </scm>
 
     <url>http://www.broadleafcommerce.org</url>
