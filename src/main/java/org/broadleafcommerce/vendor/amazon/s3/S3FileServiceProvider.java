@@ -289,7 +289,8 @@ public class S3FileServiceProvider implements FileServiceProvider {
         }
 
         String siteSpecificResourceName = getSiteSpecificResourceName(name);
-        return FilenameUtils.concat(baseDirectory, siteSpecificResourceName);
+        String concat = FilenameUtils.concat(baseDirectory, siteSpecificResourceName);
+        return concat.replaceAll("\\\\","/");
     }
 
     protected String getSiteSpecificResourceName(String resourceName) {
