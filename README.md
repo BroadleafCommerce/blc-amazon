@@ -41,3 +41,30 @@ Fulfillment : Roadmap Item
         classpath:/bl-amazon-applicationContext.xml
     ```
     > Note: This line should go before the `classpath:/applicationContext.xml` line
+
+## Steps to configure this module
+
+There are several login mechanisms that can be used in AWS.
+
+Configuration can be done by setting specific variables in `common.properties`. Three credentials mechanisms from the ![AWS credentials chain](https://docs.aws.amazon.com/sdk-for-java/v2/developer-guide/credentials.html) are available for usage and configuration.
+
+### Amazon AWS S3 Key + Secret Authentication
+
+```
+aws.s3.accessKeyId=
+aws.s3.secretKey=
+```
+
+### EC2 Instance Profile Authentication
+
+```
+aws.s3.useInstanceProfile=true
+```
+
+### ECS or Fargate Container Authentication 
+
+Note that EC2 Instance Profile Authentication has precedence over ECS and Fargate. If both are set to true, Container Credentials will be ignored.
+
+```
+aws.s3.useContainerCredentials=true
+```

@@ -29,6 +29,7 @@ import java.util.UUID;
 
 import javax.annotation.Resource;
 
+import com.amazonaws.auth.ContainerCredentialsProvider;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
@@ -340,6 +341,9 @@ public class S3FileServiceProvider implements FileServiceProvider {
         if(s3config.getUseInstanceProfileCredentials()) {
             builder = AmazonS3ClientBuilder.standard()
                     .withCredentials(new InstanceProfileCredentialsProvider(false));
+        } else if(s3config.getUseContainerCredentials()) {
+            builder = AmazonS3ClientBuilder.standard()
+                    .withCredentials(new ContainerCredentialsProvider());
         } else {
             builder = AmazonS3ClientBuilder.standard()
                     .withCredentials(new AWSStaticCredentialsProvider(getAWSCredentials(s3config)));
