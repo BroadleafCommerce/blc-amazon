@@ -48,6 +48,7 @@ import org.springframework.util.ReflectionUtils;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import com.amazonaws.auth.ContainerCredentialsProvider;
 import com.amazonaws.auth.InstanceProfileCredentialsProvider;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
@@ -340,6 +341,9 @@ public class S3FileServiceProvider implements FileServiceProvider {
         if(s3config.getUseInstanceProfileCredentials()) {
             builder = AmazonS3ClientBuilder.standard()
                     .withCredentials(new InstanceProfileCredentialsProvider(false));
+        } else if(s3config.getUseContainerCredentials()) {
+            builder = AmazonS3ClientBuilder.standard()
+                    .withCredentials(new ContainerCredentialsProvider());
         } else {
             builder = AmazonS3ClientBuilder.standard()
                     .withCredentials(new AWSStaticCredentialsProvider(getAWSCredentials(s3config)));
