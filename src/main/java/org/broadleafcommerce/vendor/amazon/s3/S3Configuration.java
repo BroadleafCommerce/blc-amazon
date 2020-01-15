@@ -131,6 +131,7 @@ public class S3Configuration {
             .append(endpointURI)
             .append(bucketSubDirectory)
             .append(useInstanceProfileCredentials)
+            .append(useContainerCredentials)
             .append(enableSSE)
             .build();
     }
@@ -147,6 +148,7 @@ public class S3Configuration {
                 .append(this.endpointURI, that.endpointURI)
                 .append(this.bucketSubDirectory, that.bucketSubDirectory)
                 .append(this.useInstanceProfileCredentials, that.useInstanceProfileCredentials)
+                .append(this.useContainerCredentials, that.useContainerCredentials)
                 .append(this.enableSSE, that.enableSSE)
                 .build();
         }
