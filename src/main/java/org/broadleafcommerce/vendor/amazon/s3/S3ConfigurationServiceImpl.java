@@ -28,7 +28,7 @@ import javax.annotation.Resource;
 
 /**
  * Service that returns the an S3 configuration object.   Returns a configuration object with values
- * that are defined as system properties.
+ * that are defined as system properties.  Test build of a fork.
  *
  * @author bpolster
  *
