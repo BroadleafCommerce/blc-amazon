@@ -40,6 +40,7 @@ public class S3Configuration {
     private String endpointURI;
     private String bucketSubDirectory;
     private Boolean useInstanceProfileCredentials;
+    private Boolean useContainerCredentials;
     private Boolean enableSSE;
 
     public String getAwsSecretKey() {
@@ -106,6 +107,12 @@ public class S3Configuration {
         this.useInstanceProfileCredentials = useInstanceProfileCredentials;
     }
 
+    public void setUseContainerCredentials(Boolean useContainerCredentials) {
+        this.useContainerCredentials = useContainerCredentials;
+    }
+
+    public Boolean getUseContainerCredentials() { return useContainerCredentials; }
+
     public Boolean getEnableSSE() {
         return enableSSE;
     }
@@ -124,6 +131,7 @@ public class S3Configuration {
             .append(endpointURI)
             .append(bucketSubDirectory)
             .append(useInstanceProfileCredentials)
+            .append(useContainerCredentials)
             .append(enableSSE)
             .build();
     }
@@ -140,6 +148,7 @@ public class S3Configuration {
                 .append(this.endpointURI, that.endpointURI)
                 .append(this.bucketSubDirectory, that.bucketSubDirectory)
                 .append(this.useInstanceProfileCredentials, that.useInstanceProfileCredentials)
+                .append(this.useContainerCredentials, that.useContainerCredentials)
                 .append(this.enableSSE, that.enableSSE)
                 .build();
         }

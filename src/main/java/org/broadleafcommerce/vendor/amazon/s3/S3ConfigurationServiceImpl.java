@@ -49,14 +49,16 @@ public class S3ConfigurationServiceImpl implements S3ConfigurationService {
         s3config.setEndpointURI(lookupProperty("aws.s3.endpointURI"));
         s3config.setBucketSubDirectory(lookupProperty("aws.s3.bucketSubDirectory"));
         s3config.setUseInstanceProfileCredentials(Boolean.parseBoolean(lookupProperty("aws.s3.useInstanceProfile")));
+        s3config.setUseContainerCredentials(Boolean.parseBoolean(lookupProperty("aws.s3.useContainerProfile")));
         s3config.setEnableSSE(Boolean.parseBoolean(lookupProperty("aws.s3.sse")));
 
         boolean accessSecretKeyBlank = StringUtils.isEmpty(s3config.getAwsSecretKey());
         boolean accessKeyIdBlank = StringUtils.isEmpty(s3config.getGetAWSAccessKeyId());
         boolean bucketNameBlank = StringUtils.isEmpty(s3config.getDefaultBucketName());
         boolean useInstanceProfile = s3config.getUseInstanceProfileCredentials();
+        boolean useContainerCredentials = s3config.getUseContainerCredentials();
         Region region = RegionUtils.getRegion(s3config.getDefaultBucketRegion());
-        boolean canRetrieveCredentials = !(accessSecretKeyBlank || accessKeyIdBlank) || useInstanceProfile;
+        boolean canRetrieveCredentials = !(accessSecretKeyBlank || accessKeyIdBlank) || useInstanceProfile || useContainerCredentials;
 
         if (region == null || !canRetrieveCredentials || bucketNameBlank) {
             StringBuilder errorMessage = new StringBuilder("Amazon S3 Configuration Error : ");
@@ -75,6 +77,10 @@ public class S3ConfigurationServiceImpl implements S3ConfigurationService {
 
             if (!useInstanceProfile) {
                 errorMessage.append("aws.s3.useInstanceProfile was blank or false,");
+            }
+
+            if (!useContainerCredentials) {
+                errorMessage.append("aws.s3.useContainerCredentials was blank or false,");
             }
 
             if (region == null) {
