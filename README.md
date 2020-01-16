@@ -42,11 +42,19 @@ Fulfillment : Roadmap Item
     ```
     > Note: This line should go before the `classpath:/applicationContext.xml` line
 
-## Steps to configure this module
+## Enable S3 module
+
+Configuration can be done by setting specific variables in `common.properties`. 
+
+`aws.s3.enabled=true`
+
+If it this variable is missing, not set or false, S3 storage is not active and the default file provider remains unchanged.
+
+## Authentication Configuration 
 
 There are several login mechanisms that can be used in AWS.
 
-Configuration can be done by setting specific variables in `common.properties`. Three credentials mechanisms from the ![AWS credentials chain](https://docs.aws.amazon.com/sdk-for-java/v2/developer-guide/credentials.html) are available for usage and configuration.
+Three credentials mechanisms from the ![AWS credentials chain](https://docs.aws.amazon.com/sdk-for-java/v2/developer-guide/credentials.html) are available for usage and configuration.
 
 ### Amazon AWS S3 Key + Secret Authentication
 
