@@ -28,7 +28,7 @@ import javax.annotation.Resource;
 
 /**
  * Service that returns the an S3 configuration object.   Returns a configuration object with values
- * that are defined as system properties.
+ * that are defined as system properties. Test
  *
  * @author bpolster
  *
@@ -82,7 +82,7 @@ public class S3ConfigurationServiceImpl implements S3ConfigurationService {
             if (!useContainerCredentials) {
                 errorMessage.append("aws.s3.useContainerCredentials was blank or false,");
             }
-            
+
             if (region == null) {
                 errorMessage.append("aws.s3.defaultBucketRegion was set to an invalid value of "
                         + s3config.getDefaultBucketRegion());
