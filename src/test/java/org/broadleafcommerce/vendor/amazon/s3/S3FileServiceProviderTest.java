@@ -18,9 +18,6 @@
 
 package org.broadleafcommerce.vendor.amazon.s3;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
@@ -32,6 +29,7 @@ import org.broadleafcommerce.common.io.ConcurrentFileOutputStreamImpl;
 import org.broadleafcommerce.common.site.domain.SiteImpl;
 import org.broadleafcommerce.common.web.BroadleafRequestContext;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.amazonaws.regions.RegionUtils;
@@ -50,6 +48,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 /**
  * This test will connect to AmazonS3, create a bucket, create a file, delete the file, and delete the bucket.
  * 
@@ -60,6 +61,7 @@ import java.util.Scanner;
  * @author bpolster
  *
  */
+@Ignore
 public class S3FileServiceProviderTest extends AbstractS3Test {
 
     private static S3FileServiceProvider s3FileProvider = new S3FileServiceProvider();
