@@ -58,6 +58,7 @@ public abstract class AbstractS3Test {
         propService.setProperty("aws.s3.endpointURI", findProperty("aws.s3.endpointURI", "https://s3.amazonaws.com"));
         propService.setProperty("aws.s3.bucketSubDirectory", findProperty("aws.s3.bucketSubDirectory", ""));
         propService.setProperty("aws.s3.useInstanceProfile", findProperty("aws.s3.useInstanceProfile", "false"));
+        propService.setProperty("aws.s3.useContainerProfile", findProperty("aws.s3.useContainerProfile", "false"));
         propService.setProperty("aws.s3.sse", findProperty("aws.s3.sse", "false"));
     }
 
