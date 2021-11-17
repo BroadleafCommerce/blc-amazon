@@ -1,24 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- ~ Copyright 2008-2009 the original author or authors. ~ ~ Licensed under the Apache License, Version 2.0 (the "License");
-    ~ you may not use this file except in compliance with the License. ~ You may obtain a copy of the License at ~ ~ http://www.apache.org/licenses/LICENSE-2.0
-    ~ ~ Unless required by applicable law or agreed to in writing, software ~ distributed under the License is distributed on an
-    "AS IS" BASIS, ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. ~ See the License for the specific
-    language governing permissions and ~ limitations under the License. -->
-
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+
     <parent>
         <groupId>org.broadleafcommerce</groupId>
         <artifactId>broadleaf-module-parent</artifactId>
-        <version>3.2.2-GA</version>
+        <version>3.2.3-GA</version>
     </parent>
 
-    <groupId>org.broadleafcommerce</groupId>
-    <artifactId>broadleaf-amazon</artifactId>
     <name>BroadleafCommerce Amazon Integrations</name>
     <description>BroadleafCommerce Amazon Integrations</description>
+    <groupId>org.broadleafcommerce</groupId>
+    <artifactId>broadleaf-amazon</artifactId>
     <version>3.2.1-SNAPSHOT</version>
-    
+    <url>https://www.broadleafcommerce.com</url>
+
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <blc.version>6.1.0-GA</blc.version>
@@ -30,8 +26,6 @@
         <url>https://github.com/BroadleafCommerce/blc-amazon</url>
       <tag>HEAD</tag>
     </scm>
-
-    <url>http://www.broadleafcommerce.org</url>
     <licenses>
         <license>
             <name>Broadleaf Fair Use 1.0</name>
@@ -48,16 +42,11 @@
     </licenses>
     <developers>
         <developer>
-            <id>jeff</id>
-            <name>Jeff Fischer</name>
-            <email>jfischer@broadleafcommerce.org</email>
+            <id>blcteam</id>
+            <name>Broadleaf Commerce Team</name>
+            <email>info@broadleafcommerce.com</email>
             <organization>Broadleaf Commerce</organization>
-            <organizationUrl>http://www.broadleafcommerce.org</organizationUrl>
-            <roles>
-                <role>cto</role>
-                <role>architect</role>
-                <role>developer</role>
-            </roles>
+            <organizationUrl>https://www.broadleafcommerce.com</organizationUrl>
             <timezone>-6</timezone>
         </developer>
     </developers>
@@ -65,12 +54,12 @@
         <repository>
             <id>public snapshots</id>
             <name>public snapshots</name>
-            <url>http://nexus.broadleafcommerce.org/nexus/content/groups/community-snapshots</url>
+            <url>https://nexus2.broadleafcommerce.org/nexus/content/groups/community-snapshots</url>
         </repository>
         <repository>
             <id>public releases</id>
             <name>public releases</name>
-            <url>http://nexus.broadleafcommerce.org/nexus/content/groups/community-releases</url>
+            <url>https://nexus2.broadleafcommerce.org/nexus/content/groups/community-releases</url>
         </repository>
     </repositories>
 
@@ -90,12 +79,12 @@
         <snapshotRepository>
             <id>snapshots</id>
             <name>public snapshots</name>
-            <url>http://nexus.broadleafcommerce.org/nexus/content/repositories/amazon-snapshots</url>
+            <url>https://nexus2.broadleafcommerce.org/nexus/content/repositories/amazon-snapshots</url>
         </snapshotRepository>
         <repository>
             <id>releases</id>
             <name>public releases</name>
-            <url>http://nexus.broadleafcommerce.org/nexus/content/repositories/amazon-releases</url>
+            <url>https://nexus2.broadleafcommerce.org/nexus/content/repositories/amazon-releases</url>
         </repository>
     </distributionManagement>
 
