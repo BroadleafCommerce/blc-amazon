@@ -13,9 +13,15 @@ A distributed storage (like Amazon S3) is needed when running in a multi-server 
 one server are available to the others in the cluster.  Other common alternatives are to use a shared drive via an NFS mount 
 and configuring the default FileSystemFileServiceProvider to use that directory.
 
+## Compatibility
+
+| Module Version | Compatible Broadleaf Versions |
+|:---------------|:------------------------------| 
+| 2.1.0-GA       | 5.2.0-GA                      |
+| 3.0.0-GA       | 6.0.0-GA                      |
+| 3.2.0-GA       | 6.1.0-GA+                     |
+
 ## Module Configuration
-This module is compatible with BroadleafCommerce 3.1.0-GA.   Version 3.1.1-GA or later is recommended due to a 
-performance improvement allowing local caching of images stored on S3.   To use the blc-amazon module requires that you 
-have an amazon aws account with s3 capabilities and some basic Broadleaf Commerce configuration.
+To use the blc-amazon module requires that you have an amazon aws account with s3 capabilities and some basic Broadleaf Commerce configuration.
 
 For step-by-step instructions on how to integrate the amazon module into your project, see [[Module Installation]].
