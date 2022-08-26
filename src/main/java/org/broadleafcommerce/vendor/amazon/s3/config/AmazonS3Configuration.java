@@ -17,8 +17,11 @@
  */
 package org.broadleafcommerce.vendor.amazon.s3.config;
 
+import org.broadleafcommerce.common.file.service.FileSystemFileServiceProvider;
 import org.broadleafcommerce.common.logging.LifeCycleEvent;
 import org.broadleafcommerce.common.logging.ModuleLifecycleLoggingBean;
+import org.broadleafcommerce.vendor.amazon.s3.S3FileServiceProvider;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -32,4 +35,11 @@ public class AmazonS3Configuration {
     public ModuleLifecycleLoggingBean blAmazonS3ModuleLifecycle() {
         return new ModuleLifecycleLoggingBean(AmazonS3ModuleRegistration.MODULE_NAME, LifeCycleEvent.LOADING);
     }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "aws.s3", name = "enabled", havingValue = "true", matchIfMissing = false)
+    public S3FileServiceProvider blDefaultFileServiceProvider() {
+        return new S3FileServiceProvider();
+    }
+
 }
