@@ -179,11 +179,11 @@ public class S3FileServiceProvider implements FileServiceProvider {
                 S3Object object = s3.getObject(new GetObjectRequest(bucketName, resourceNameS3));
                 inputStream = object.getObjectContent();
 
-                returnFile.setLastModified(object.getObjectMetadata().getLastModified().getTime());
-
                 ensureFileCreation(returnFile, rawName);
 
                 concurrentFileOutputStream.write(inputStream, returnFile);
+
+                returnFile.setLastModified(object.getObjectMetadata().getLastModified().getTime());
             }
 
         } catch (IOException ioe) {
