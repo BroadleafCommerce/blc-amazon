@@ -85,13 +85,13 @@ public class S3FileServiceProvider implements FileServiceProvider {
     @Resource(name = "blConcurrentFileOutputStream")
     protected ConcurrentFileOutputStream concurrentFileOutputStream;
 
-    protected static String BUCKET_PREFIX="bucket://";
+    protected static String BUCKET_PREFIX = "bucket://";
 
-    protected static String SITE_PREFIX="site-";
+    protected static String SITE_PREFIX = "site-";
 
-    protected static String MULTITENANT_SITE_CLASSNAME= "com.broadleafcommerce.tenant.domain.MultiTenantSite";
+    protected static String MULTITENANT_SITE_CLASSNAME = "com.broadleafcommerce.tenant.domain.MultiTenantSite";
 
-    protected static String MULTITENANTSITE_GETPARENTID_METHODNAME= "getParentSiteId";
+    protected static String MULTITENANTSITE_GETPARENTID_METHODNAME = "getParentSiteId";
 
     /**
      * Entry point to retrieve resources from this module.
@@ -103,39 +103,42 @@ public class S3FileServiceProvider implements FileServiceProvider {
 
     /**
      * Returns the bucket name or the default one.
+     *
      * @param name
      * @param defaultBucketName
      * @return
      */
     protected String getBucketName(String name, String defaultBucketName) {
-        if(name!=null && name.startsWith(BUCKET_PREFIX)){
+        if (name != null && name.startsWith(BUCKET_PREFIX)) {
             return name.substring(BUCKET_PREFIX.length(), name.indexOf("/", BUCKET_PREFIX.length()));
         }
         return defaultBucketName;
     }
 
-     /**
-      * Retrieves the resourceName from its rawname.
-      * @param s3config
-      * @param bucketName
-      * @param rawName
-      * @return
-      */
-     protected String getResourceName(S3Configuration s3config, String bucketName, String rawName) {
-        String name= rawName;
-        if(!bucketName.equals(s3config.getDefaultBucketName())){
-            name = name.substring((BUCKET_PREFIX+bucketName).length()+1);
+    /**
+     * Retrieves the resourceName from its rawname.
+     *
+     * @param s3config
+     * @param bucketName
+     * @param rawName
+     * @return
+     */
+    protected String getResourceName(S3Configuration s3config, String bucketName, String rawName) {
+        String name = rawName;
+        if (!bucketName.equals(s3config.getDefaultBucketName())) {
+            name = name.substring((BUCKET_PREFIX + bucketName).length() + 1);
         }
         return name;
     }
 
     /**
      * Ensures the file creation
+     *
      * @param returnFile
      * @param name
      * @throws RuntimeException
      */
-    protected void ensureFileCreation(File returnFile,String name) throws RuntimeException {
+    protected void ensureFileCreation(File returnFile, String name) throws RuntimeException {
         if (!returnFile.getParentFile().exists()) {
             if (!returnFile.getParentFile().mkdirs()) {
                 // Other thread could have created - check one more time.
@@ -179,6 +182,8 @@ public class S3FileServiceProvider implements FileServiceProvider {
                 ensureFileCreation(returnFile, rawName);
 
                 concurrentFileOutputStream.write(inputStream, returnFile);
+
+                returnFile.setLastModified(object.getObjectMetadata().getLastModified().getTime());
             }
 
         } catch (IOException ioe) {
