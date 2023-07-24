@@ -2,7 +2,7 @@
  * #%L
  * BroadleafCommerce Amazon Integrations
  * %%
- * Copyright (C) 2009 - 2022 Broadleaf Commerce
+ * Copyright (C) 2009 - 2023 Broadleaf Commerce
  * %%
  * Licensed under the Broadleaf Fair Use License Agreement, Version 1.0
  * (the "Fair Use License" located  at http://license.broadleafcommerce.org/fair_use_license-1.0.txt)
@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import javax.annotation.Resource;
+import jakarta.annotation.Resource;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
