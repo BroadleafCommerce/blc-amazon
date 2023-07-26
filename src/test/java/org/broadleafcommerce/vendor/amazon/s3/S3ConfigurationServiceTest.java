@@ -15,13 +15,11 @@
  * between you and Broadleaf Commerce. You may not use this file except in compliance with the applicable license.
  * #L%
  */
-
 package org.broadleafcommerce.vendor.amazon.s3;
-
-import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
+import static org.junit.Assert.assertTrue;
 
 /**
  * Tests that error messages are returned for misconfigured amazon s3 properties. 
