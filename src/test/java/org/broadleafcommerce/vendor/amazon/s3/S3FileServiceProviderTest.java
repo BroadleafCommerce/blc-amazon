@@ -31,10 +31,6 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.GetObjectRequest;
-import com.amazonaws.services.s3.model.S3Object;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -46,11 +42,16 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
+import software.amazon.awssdk.core.ResponseInputStream;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 /**
- * This test will connect to AmazonS3, create a bucket, create a file, delete the file, and delete the bucket.
+ * This test will connect to S3Client, create a bucket, create a file, delete the file, and delete the bucket.
  * 
  * This test requires an S3 keys and S3 accessId which can be passed in as -D arguments or stored 
  * in a property file in your classpath named.   
@@ -182,7 +183,7 @@ public class S3FileServiceProviderTest extends AbstractS3Test {
         
         // Use the S3 client directly to ensure that it was uploaded to the sub-directory
         S3Configuration s3config = configService.lookupS3Configuration();
-        AmazonS3 s3 = s3FileProvider.getAmazonS3Client(s3config);
+        S3Client s3 = s3FileProvider.getAmazonS3Client(s3config);
         String s3Key = s3FileProvider.getSiteSpecificResourceName(filename);
         if (StringUtils.isNotEmpty(directoryName)) {
             s3Key = directoryName + "/" + s3Key;
@@ -191,10 +192,10 @@ public class S3FileServiceProviderTest extends AbstractS3Test {
         // Replace the starting slash and remove the double-slashes if the directory ended with a slash
         s3Key = s3Key.startsWith("/") ? s3Key.substring(1) : s3Key;
         s3Key = FilenameUtils.normalize(s3Key);
-        
-        S3Object object = s3.getObject(new GetObjectRequest(s3config.getDefaultBucketName(), s3Key));
-      
-        InputStream inputStream = object.getObjectContent();
+        s3Key = s3Key.replaceAll("\\\\", "/");
+        ResponseInputStream<GetObjectResponse> object = s3.getObject(GetObjectRequest.builder().bucket(s3config.getDefaultBucketName()).key(s3Key).build());
+
+        InputStream inputStream = object;
         StringWriter writer = new StringWriter();
         IOUtils.copy(inputStream, writer, "UTF-8");
         String fileContents = writer.toString();

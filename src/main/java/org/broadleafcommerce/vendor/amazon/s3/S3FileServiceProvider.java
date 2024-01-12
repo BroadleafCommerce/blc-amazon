@@ -10,7 +10,7 @@
  * the Broadleaf End User License Agreement (EULA), Version 1.1
  * (the "Commercial License" located at http://license.broadleafcommerce.org/commercial_license-1.1.txt)
  * shall apply.
- * 
+ *
  * Alternatively, the Commercial License may be replaced with a mutually agreed upon license (the "Custom License")
  * between you and Broadleaf Commerce. You may not use this file except in compliance with the applicable license.
  * #L%
@@ -33,18 +33,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.ReflectionUtils;
 
-import com.amazonaws.AmazonServiceException;
-import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.InstanceProfileCredentialsProvider;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3ClientBuilder;
-import com.amazonaws.services.s3.model.AmazonS3Exception;
-import com.amazonaws.services.s3.model.GetObjectRequest;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.s3.model.S3Object;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -56,6 +44,26 @@ import java.util.Map;
 import java.util.UUID;
 
 import jakarta.annotation.Resource;
+import software.amazon.awssdk.auth.credentials.AwsCredentials;
+import software.amazon.awssdk.auth.credentials.InstanceProfileCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
+import software.amazon.awssdk.core.ResponseInputStream;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.S3ClientBuilder;
+import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
+import software.amazon.awssdk.services.s3.model.NoSuchBucketException;
+import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectResponse;
+import software.amazon.awssdk.services.s3.model.S3Exception;
+import software.amazon.awssdk.services.s3.model.S3Object;
+import software.amazon.awssdk.services.s3.model.ServerSideEncryption;
 
 @Service("blS3FileServiceProvider")
 /**
@@ -80,7 +88,7 @@ public class S3FileServiceProvider implements FileServiceProvider {
     @Resource(name = "blFileService")
     protected BroadleafFileService blFileService;
 
-    protected Map<S3Configuration, AmazonS3> configClientMap = new HashMap<>();
+    protected Map<S3Configuration, S3Client> configClientMap = new HashMap<>();
 
     @Resource(name = "blConcurrentFileOutputStream")
     protected ConcurrentFileOutputStream concurrentFileOutputStream;
@@ -153,47 +161,46 @@ public class S3FileServiceProvider implements FileServiceProvider {
     /**
      * Handles the logic for resource retrieval it accepts if is a child resource or parent, only differs in
      * in tha name generation.
+     *
      * @param rawName
      * @param fileApplicationType
      * @param isParent
      * @return
      */
     public File getResource(String rawName, FileApplicationType fileApplicationType, boolean isParent) {
-        String resourceName=(isParent?buildResourceParentName(rawName):buildResourceName(rawName));
-        LOG.debug("Local Resource name: "+ resourceName);
+        String resourceName = (isParent ? buildResourceParentName(rawName) : buildResourceName(rawName));
+        LOG.debug("Local Resource name: " + resourceName);
         File returnFile = blFileService.getLocalResource(resourceName);
         InputStream inputStream = null;
         String name;
 
         try {
             S3Configuration s3config = s3ConfigurationService.lookupS3Configuration();
-            AmazonS3 s3 = getAmazonS3Client(s3config);
+            S3Client s3 = getAmazonS3Client(s3config);
 
             String bucketName = getBucketName(rawName, s3config.getDefaultBucketName());
-            name = getResourceName(s3config,bucketName, rawName);
-            
-            String resourceNameS3=(isParent?buildResourceParentName(name):buildResourceName(name)); 
-            LOG.debug("Resource name in S3: "+ resourceName);
+            name = getResourceName(s3config, bucketName, rawName);
+
+            String resourceNameS3 = (isParent ? buildResourceParentName(name) : buildResourceName(name));
+            LOG.debug("Resource name in S3: " + resourceName);
             //No parent present
-            if ((!isParent) || (!resourceName.contains(SITE_PREFIX+"0/"))) {
-                S3Object object = s3.getObject(new GetObjectRequest(bucketName, resourceNameS3));
-                inputStream = object.getObjectContent();
+            if ((!isParent) || (!resourceName.contains(SITE_PREFIX + "0/"))) {
+                ResponseInputStream<GetObjectResponse> object = s3.getObject(GetObjectRequest.builder().bucket(bucketName).key(resourceNameS3).build());
+                inputStream = object;
 
                 ensureFileCreation(returnFile, rawName);
 
                 concurrentFileOutputStream.write(inputStream, returnFile);
 
-                returnFile.setLastModified(object.getObjectMetadata().getLastModified().getTime());
+                returnFile.setLastModified(object.response().lastModified().toEpochMilli());
             }
 
         } catch (IOException ioe) {
             throw new RuntimeException("Error writing s3 file to local file system", ioe);
-        } catch (AmazonS3Exception s3Exception) {
-            if ("NoSuchKey".equals(s3Exception.getErrorCode())) {
-                return new File("this/path/should/not/exist/" + UUID.randomUUID());
-            } else {
-                throw s3Exception;
-            }
+        } catch (NoSuchKeyException s3Exception) {
+            return new File("this/path/should/not/exist/" + UUID.randomUUID());
+        } catch (Exception s3Exception) {
+            throw s3Exception;
         } finally {
             if (inputStream != null) {
                 try {
@@ -218,13 +225,13 @@ public class S3FileServiceProvider implements FileServiceProvider {
     @Override
     public List<String> addOrUpdateResourcesForPaths(FileWorkArea workArea, List<File> files, boolean removeFilesFromWorkArea) {
         S3Configuration s3config = s3ConfigurationService.lookupS3Configuration();
-        AmazonS3 s3 = getAmazonS3Client(s3config);
+        S3Client s3 = getAmazonS3Client(s3config);
 
         try {
             return addOrUpdateResourcesInternal(s3config, s3, workArea, files, removeFilesFromWorkArea);
-        } catch (AmazonServiceException ase) {
-            if ("NoSuchBucket".equals(ase.getErrorCode())) {
-                s3.createBucket(s3config.getDefaultBucketName());
+        } catch (AwsServiceException ase) {
+            if (ase instanceof NoSuchBucketException) {
+                s3.createBucket(CreateBucketRequest.builder().bucket(s3config.getDefaultBucketName()).build());
                 return addOrUpdateResourcesInternal(s3config, s3, workArea, files, removeFilesFromWorkArea);
             } else {
                 throw new RuntimeException(ase);
@@ -232,7 +239,7 @@ public class S3FileServiceProvider implements FileServiceProvider {
         }
     }
 
-    protected List<String> addOrUpdateResourcesInternal(S3Configuration s3config, AmazonS3 s3, FileWorkArea workArea, List<File> files, boolean removeFilesFromWorkArea) {
+    protected List<String> addOrUpdateResourcesInternal(S3Configuration s3config, S3Client s3, FileWorkArea workArea, List<File> files, boolean removeFilesFromWorkArea) {
         List<String> resourcePaths = new ArrayList<>();
         for (File srcFile : files) {
             if (!srcFile.getAbsolutePath().startsWith(workArea.getFilePathLocation())) {
@@ -242,17 +249,15 @@ public class S3FileServiceProvider implements FileServiceProvider {
 
             String fileName = srcFile.getAbsolutePath().substring(workArea.getFilePathLocation().length());
             String resourceName = buildResourceName(fileName);
-            PutObjectRequest putObjectRequest = new PutObjectRequest(s3config.getDefaultBucketName(), resourceName, srcFile);
 
+            PutObjectRequest.Builder builder = PutObjectRequest.builder().bucket(s3config.getDefaultBucketName()).key(resourceName);
             // maybe put a handler here instead.
             // If server-side encryption is enabled
-            if(s3config.getEnableSSE()) {
-                ObjectMetadata objectMetadata = new ObjectMetadata();
-                objectMetadata.setSSEAlgorithm(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
-                putObjectRequest.setMetadata(objectMetadata);
+            if (s3config.getEnableSSE()) {
+                builder.sseCustomerAlgorithm(ServerSideEncryption.AES256.name());
             }
-
-            s3.putObject(putObjectRequest);
+            PutObjectRequest putObjectRequest = builder.build();
+            PutObjectResponse putObjectResponse = s3.putObject(putObjectRequest, RequestBody.fromFile(srcFile));
             resourcePaths.add(fileName);
         }
         return resourcePaths;
@@ -261,8 +266,9 @@ public class S3FileServiceProvider implements FileServiceProvider {
     @Override
     public boolean removeResource(String name) {
         S3Configuration s3config = s3ConfigurationService.lookupS3Configuration();
-        AmazonS3 s3 = getAmazonS3Client(s3config);
-        s3.deleteObject(s3config.getDefaultBucketName(), buildResourceName(name));
+        S3Client s3 = getAmazonS3Client(s3config);
+        DeleteObjectRequest deleteObjectRequest = DeleteObjectRequest.builder().bucket(s3config.getDefaultBucketName()).key(buildResourceName(name)).build();
+        s3.deleteObject(deleteObjectRequest);
 
         File returnFile = blFileService.getLocalResource(buildResourceName(name));
         if (returnFile != null) {
@@ -273,6 +279,7 @@ public class S3FileServiceProvider implements FileServiceProvider {
 
     /**
      * hook for overriding name used for resource in S3
+     *
      * @param name
      * @return
      */
@@ -295,7 +302,7 @@ public class S3FileServiceProvider implements FileServiceProvider {
 
         String siteSpecificResourceName = getSiteSpecificResourceName(name);
         String concat = FilenameUtils.concat(baseDirectory, siteSpecificResourceName);
-        return concat.replaceAll("\\\\","/");
+        return concat.replaceAll("\\\\", "/");
     }
 
     protected String getSiteSpecificResourceName(String resourceName) {
@@ -323,8 +330,8 @@ public class S3FileServiceProvider implements FileServiceProvider {
         return siteDirectory;
     }
 
-    protected AmazonS3 getAmazonS3Client(S3Configuration s3config) {
-        AmazonS3 client = configClientMap.get(s3config);
+    protected S3Client getAmazonS3Client(S3Configuration s3config) {
+        S3Client client = configClientMap.get(s3config);
         if (client == null) {
             client = getAmazonS3ClientFromConfiguration(s3config);
             configClientMap.put(s3config, client);
@@ -336,40 +343,42 @@ public class S3FileServiceProvider implements FileServiceProvider {
      * Creates an instance of the S3 Client based on the 'use instance profile' property.
      * If it exists, it retrieves credentials from the IAM role (valid only on EC2 instances).
      * Otherwise, a secret key and access key ID must be provided.
+     *
      * @param s3config Configuration object
      * @return an authenticated AmazonS3Client
      */
-    protected AmazonS3 getAmazonS3ClientFromConfiguration(S3Configuration s3config) {
-        AmazonS3ClientBuilder builder;
+    protected S3Client getAmazonS3ClientFromConfiguration(S3Configuration s3config) {
+        S3ClientBuilder builder = S3Client.builder();
 
-        if(s3config.getUseInstanceProfileCredentials()) {
-            builder = AmazonS3ClientBuilder.standard()
-                    .withCredentials(new InstanceProfileCredentialsProvider(false));
+        if (s3config.getUseInstanceProfileCredentials()) {
+
+            builder.credentialsProvider(InstanceProfileCredentialsProvider.builder().asyncCredentialUpdateEnabled(false).build());
         } else {
-            builder = AmazonS3ClientBuilder.standard()
-                    .withCredentials(new AWSStaticCredentialsProvider(getAWSCredentials(s3config)));
+            builder.credentialsProvider(StaticCredentialsProvider.create(getAWSCredentials(s3config)));
+
         }
 
-        builder.setRegion(s3config.getDefaultBucketRegion());
+        builder.region(Region.of(s3config.getDefaultBucketRegion()));
 
         return builder.build();
     }
 
 
-    protected AWSCredentials getAWSCredentials(final S3Configuration s3configParam) {
-        return new AWSCredentials() {
-
-            private final S3Configuration s3ConfigVar = s3configParam;
+    protected AwsCredentials getAWSCredentials(final S3Configuration s3configParam) {
+        return new AwsCredentials() {
 
             @Override
-            public String getAWSSecretKey() {
+            public String accessKeyId() {
+                return s3ConfigVar.getGetAWSAccessKeyId();
+            }
+
+            @Override
+            public String secretAccessKey() {
                 return s3ConfigVar.getAwsSecretKey();
             }
 
-            @Override
-            public String getAWSAccessKeyId() {
-                return s3ConfigVar.getGetAWSAccessKeyId();
-            }
+            private final S3Configuration s3ConfigVar = s3configParam;
+
         };
     }
 
@@ -387,7 +396,7 @@ public class S3FileServiceProvider implements FileServiceProvider {
     @Override
     public File getResource(String name, FileApplicationType fileApplicationType) {
         File file = getResource(name, fileApplicationType, false);
-        if (file.getPath().contains("this/path/should/not/exist/")  && isMultiTenantEnvironment()) {
+        if (file.getPath().contains("this/path/should/not/exist/") && isMultiTenantEnvironment()) {
             file = getResource(name, fileApplicationType, true);
         }
         return file;
@@ -395,15 +404,16 @@ public class S3FileServiceProvider implements FileServiceProvider {
 
     /**
      * Builds the resourceName for it's parent.
+     *
      * @param name
      * @return
      */
     protected String buildResourceParentName(String name) {
-        name= StringUtils.removeStart(name, "/");
+        name = StringUtils.removeStart(name, "/");
 
         String baseDirectory = s3ConfigurationService.lookupS3Configuration().getBucketSubDirectory();
         if (StringUtils.isNotEmpty(baseDirectory)) {
-            baseDirectory= StringUtils.removeStart(baseDirectory, "/");
+            baseDirectory = StringUtils.removeStart(baseDirectory, "/");
         } else {
             // ensure subDirectory is non-null
             baseDirectory = "";
@@ -416,18 +426,20 @@ public class S3FileServiceProvider implements FileServiceProvider {
 
     /**
      * Check if the module is call with MultiTenant module
+     *
      * @return
      */
     protected boolean isMultiTenantEnvironment() {
-        return ClassUtils.isPresent(MULTITENANT_SITE_CLASSNAME ,getClass().getClassLoader());
+        return ClassUtils.isPresent(MULTITENANT_SITE_CLASSNAME, getClass().getClassLoader());
     }
 
     /**
-     * Get MultiTenantSite Class by Reflection 
+     * Get MultiTenantSite Class by Reflection
+     *
      * @return
-     * @throws Throwable 
+     * @throws Throwable
      */
-    protected Class<?> getMultiTenantClass() throws ClassNotFoundException, LinkageError  {
+    protected Class<?> getMultiTenantClass() throws ClassNotFoundException, LinkageError {
         try {
             Class<?> c = ClassUtils.forName(MULTITENANT_SITE_CLASSNAME, getClass().getClassLoader());
             return c;
@@ -439,14 +451,15 @@ public class S3FileServiceProvider implements FileServiceProvider {
 
 
     /**
-     * Gets getParentId method by reflection   
+     * Gets getParentId method by reflection
+     *
      * @return
-     * @throws NoSuchMethodException, SecurityException,ClassNotFoundException, LinkageError 
+     * @throws NoSuchMethodException, SecurityException,ClassNotFoundException, LinkageError
      */
-    protected Method getMultiTenantGetParentSiteIdMethod() throws NoSuchMethodException, SecurityException,ClassNotFoundException, LinkageError {
+    protected Method getMultiTenantGetParentSiteIdMethod() throws NoSuchMethodException, SecurityException, ClassNotFoundException, LinkageError {
         try {
             return getMultiTenantClass().getMethod(MULTITENANTSITE_GETPARENTID_METHODNAME);
-        } catch (NoSuchMethodException | SecurityException | ClassNotFoundException | LinkageError  e) {
+        } catch (NoSuchMethodException | SecurityException | ClassNotFoundException | LinkageError e) {
             // TODO Auto-generated catch block
             throw e;
         }
@@ -454,30 +467,33 @@ public class S3FileServiceProvider implements FileServiceProvider {
 
 
     /**
-     * Reflection getParentSiteId Invocation 
+     * Reflection getParentSiteId Invocation
+     *
      * @param site
      * @return
      */
     protected Long invokeMultiTenantGetParentSiteIdMethod(Object site) {
         Long result = 0L;
         try {
-            String parentSiteId =ReflectionUtils.invokeMethod(getMultiTenantGetParentSiteIdMethod(), site).toString();
-            if (parentSiteId!=null) {
-                result =Long.parseLong(parentSiteId);
-            }        
+            String parentSiteId = ReflectionUtils.invokeMethod(getMultiTenantGetParentSiteIdMethod(), site).toString();
+            if (parentSiteId != null) {
+                result = Long.parseLong(parentSiteId);
+            }
             return result;
-        } catch ( SecurityException | IllegalArgumentException | NoSuchMethodException | ClassNotFoundException | LinkageError e) {
+        } catch (SecurityException | IllegalArgumentException | NoSuchMethodException | ClassNotFoundException |
+                 LinkageError e) {
             LOG.error("Problem invoking getParentSiteId method from reflected Multitenant class", e);
             return 0L;
 
         }
-        
+
     }
 
 
     /**
      * Get the parent from a MultiTentantSite.
      * The MultiTenantSite environment is detected by reflection.
+     *
      * @param resourceName
      * @return
      */
@@ -485,7 +501,7 @@ public class S3FileServiceProvider implements FileServiceProvider {
         BroadleafRequestContext brc = BroadleafRequestContext.getBroadleafRequestContext();
         if (brc != null) {
             //getMultiTenantClass retrieves the class by reflection, the casts.
-            Object site="";
+            Object site = "";
             try {
                 site = (getMultiTenantClass().cast(brc.getNonPersistentSite()));
                 String siteDirectory = getSiteDirectory((invokeMultiTenantGetParentSiteIdMethod(site)));
@@ -493,9 +509,9 @@ public class S3FileServiceProvider implements FileServiceProvider {
             } catch (ClassNotFoundException | LinkageError e) {
                 //The MultitenantEnvironment should be checked before reaching this point so
                 //this exception should never occur if the MultiTenant environment is ok
-               LOG.error("Problem reflecting Multitenant Class", e);
+                LOG.error("Problem reflecting Multitenant Class", e);
             }
-          }
+        }
         return resourceName;
     }
 
