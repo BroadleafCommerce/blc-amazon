@@ -10,7 +10,7 @@
  * the Broadleaf End User License Agreement (EULA), Version 1.1
  * (the "Commercial License" located at http://license.broadleafcommerce.org/commercial_license-1.1.txt)
  * shall apply.
- * 
+ *
  * Alternatively, the Commercial License may be replaced with a mutually agreed upon license (the "Custom License")
  * between you and Broadleaf Commerce. You may not use this file except in compliance with the applicable license.
  * #L%
@@ -21,17 +21,16 @@ import org.apache.commons.lang3.StringUtils;
 import org.broadleafcommerce.common.config.service.SystemPropertiesService;
 import org.springframework.stereotype.Service;
 
-import com.amazonaws.regions.Region;
-import com.amazonaws.regions.RegionUtils;
+import java.util.Optional;
 
 import jakarta.annotation.Resource;
+import software.amazon.awssdk.regions.Region;
 
 /**
  * Service that returns the an S3 configuration object.   Returns a configuration object with values
  * that are defined as system properties.
  *
  * @author bpolster
- *
  */
 @Service("blS3ConfigurationService")
 public class S3ConfigurationServiceImpl implements S3ConfigurationService {
@@ -55,7 +54,7 @@ public class S3ConfigurationServiceImpl implements S3ConfigurationService {
         boolean accessKeyIdBlank = StringUtils.isEmpty(s3config.getGetAWSAccessKeyId());
         boolean bucketNameBlank = StringUtils.isEmpty(s3config.getDefaultBucketName());
         boolean useInstanceProfile = s3config.getUseInstanceProfileCredentials();
-        Region region = RegionUtils.getRegion(s3config.getDefaultBucketRegion());
+        Region region = resolveRegionFromList(s3config.getDefaultBucketRegion());
         boolean canRetrieveCredentials = !(accessSecretKeyBlank || accessKeyIdBlank) || useInstanceProfile;
 
         if (region == null || !canRetrieveCredentials || bucketNameBlank) {
@@ -85,6 +84,11 @@ public class S3ConfigurationServiceImpl implements S3ConfigurationService {
         }
 
         return s3config;
+    }
+
+    protected Region resolveRegionFromList(String regionId) {
+        Optional<Region> region = Region.regions().stream().filter(t -> t.id().equals(regionId)).findFirst();
+        return region.orElse(null);
     }
 
     protected String lookupProperty(String propertyName) {
