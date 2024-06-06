@@ -155,7 +155,6 @@ public class S3FileServiceProvider implements FileServiceProvider {
                 }
             }
         }
-
     }
 
     /**
@@ -423,7 +422,6 @@ public class S3FileServiceProvider implements FileServiceProvider {
         return FilenameUtils.concat(baseDirectory, siteSpecificResourceName);
     }
 
-
     /**
      * Check if the module is call with MultiTenant module
      *
@@ -445,10 +443,8 @@ public class S3FileServiceProvider implements FileServiceProvider {
             return c;
         } catch (ClassNotFoundException | LinkageError e) {
             throw e;
-
         }
     }
-
 
     /**
      * Gets getParentId method by reflection
@@ -464,7 +460,6 @@ public class S3FileServiceProvider implements FileServiceProvider {
             throw e;
         }
     }
-
 
     /**
      * Reflection getParentSiteId Invocation
@@ -486,9 +481,7 @@ public class S3FileServiceProvider implements FileServiceProvider {
             return 0L;
 
         }
-
     }
-
 
     /**
      * Get the parent from a MultiTentantSite.

@@ -20,6 +20,7 @@ and configuring the default FileSystemFileServiceProvider to use that directory.
 | 2.1.0-GA       | 5.2.0-GA                      |
 | 3.0.0-GA       | 6.0.0-GA                      |
 | 3.2.0-GA       | 6.1.0-GA+                     |
+| 3.3.0-GA       | 7.0.0-GA+                     |
 
 ## Module Configuration
 To use the blc-amazon module requires that you have an amazon aws account with s3 capabilities and some basic Broadleaf Commerce configuration.

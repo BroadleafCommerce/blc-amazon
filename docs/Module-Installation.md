@@ -3,6 +3,7 @@ The Broadleaf Amazon module requires [configuration](#configuration-changes) and
 
 ## Broadleaf Dependency
 
+- Version 3.3.x-GA requires Broadleaf 7.0 or later.
 - Version 2.1.x-GA requires Broadleaf 5.2 or later.
 - Version 2.0.x-GA requires Broadleaf 5.0 or 5.1
 - Version 1.1.x-GA requires Broadleaf 4.0 or 4.1
